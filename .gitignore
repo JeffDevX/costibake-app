@@ -1,0 +1,71 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+*.ps
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Heavy Media & Recordings
+*.m4a
+*.mp3
+*.mp4
+*.wav
+
+# User-specific stuff
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.sublime-project
+*.sublime-workspace
+
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Symbol processing
+*.symbols
+*.map
+
+# Obfuscation symbols
+app.*.symbols
+
+# Dart-specific
+.pub-cache/
+.pub/
+
+# Secrets & Environment
+*.env
+*.env.*
+!.env.example
+*.local
+
+# Android
+android/.gradle/
+android/local.properties
+android/app/release/
+android/key.properties
+android/*.jks
+android/*.keystore
+
+# iOS / macOS
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Pods/
+ios/.symlinks/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+project.xcworkspace/xcuserdata/
+Podfile.lock
