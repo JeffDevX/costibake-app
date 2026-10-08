@@ -1,0 +1,44 @@
+name: costibake_app
+description: "CostiBake - Sistema Integral de Costeo Paramétrico, Recetario y Rentabilidad Comercial para Repostería"
+publish_to: 'none'
+
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.10.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management & Architectural Pattern (Strict Event-State Bloc)
+  flutter_bloc: ^8.1.6
+
+  # High-Precision Decimal Math (No IEEE 754 float in financial math)
+  decimal: ^2.3.3
+  intl: ^0.19.0
+
+  # Local Persistence (Offline-First SQLite ACID)
+  sqflite: ^2.3.3
+  path: ^1.9.0
+
+  # Secure Storage for sensitive settings
+  flutter_secure_storage: ^9.2.2
+
+  # Value equality & UUID
+  equatable: ^2.0.5
+  uuid: ^4.4.0
+
+  # UI & Design Tokens
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  sqflite_common_ffi: ^2.3.3
+  test: ^1.25.0
+
+flutter:
+  uses-material-design: true
