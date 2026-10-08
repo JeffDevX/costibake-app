@@ -12,8 +12,8 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # State Management & DI
-  flutter_riverpod: ^2.5.1
+  # State Management & Architectural Pattern (Strict Event-State Bloc)
+  flutter_bloc: ^8.1.6
 
   # High-Precision Decimal Math (No IEEE 754 float in financial math)
   decimal: ^2.3.3
