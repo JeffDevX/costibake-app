@@ -18,6 +18,8 @@ Icon?
 
 # User-specific stuff
 .idea/
+*.iml
+.metadata
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
