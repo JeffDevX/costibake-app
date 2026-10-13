@@ -76,7 +76,7 @@ class IngredientLocalDataSourceImpl implements IngredientLocalDataSource {
   @override
   Future<List<String>> getUsageInRecipes(String ingredientId) async {
     final db = await appDatabase.database;
-    final query = '''
+    const query = '''
       SELECT DISTINCT r.nombre 
       FROM ${DatabaseTables.tableRecetaInsumo} ri
       INNER JOIN ${DatabaseTables.tableReceta} r ON ri.receta_id = r.id
@@ -88,8 +88,6 @@ class IngredientLocalDataSourceImpl implements IngredientLocalDataSource {
 
   @override
   Future<void> delete(String id, {bool force = false}) async {
-    final db = await appDatabase.database;
-
     // Protective dependency check (JEF-17)
     final affectedRecipes = await getUsageInRecipes(id);
     if (affectedRecipes.isNotEmpty && !force) {
@@ -102,7 +100,7 @@ class IngredientLocalDataSourceImpl implements IngredientLocalDataSource {
     await appDatabase.runTransaction((txn) async {
       if (force && affectedRecipes.isNotEmpty) {
         // Mark affected recipes as incomplete requiring review (JEF-18)
-        final updateQuery = '''
+        const updateQuery = '''
           UPDATE ${DatabaseTables.tableReceta}
           SET estado = ?, fecha_actualizacion = ?
           WHERE id IN (
