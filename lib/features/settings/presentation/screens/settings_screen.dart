@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/constants/app_breakpoints.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/responsive_center.dart';
 import '../bloc/settings_bloc.dart';
 import '../bloc/settings_state.dart';
 
@@ -25,9 +27,11 @@ class SettingsScreen extends StatelessWidget {
 
           if (state is SettingsLoaded) {
             final config = state.config;
-            return ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
+            return ResponsiveCenter(
+              maxWidth: AppBreakpoints.maxFormWidth,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -94,13 +98,13 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Card(
+                const Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Almacenamiento y Seguridad',
                           style: TextStyle(
                             fontSize: 16,
@@ -108,8 +112,8 @@ class SettingsScreen extends StatelessWidget {
                             color: AppColors.textEspresso,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        const ListTile(
+                        SizedBox(height: 12),
+                        ListTile(
                           contentPadding: EdgeInsets.zero,
                           leading: Icon(Icons.security, color: AppColors.profitGreen),
                           title: Text('Modo Offline-First Activo'),
@@ -121,6 +125,7 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
               ],
+              ),
             );
           }
 
