@@ -184,21 +184,21 @@ class CostingScreen extends StatelessWidget {
                                                 color: AppColors.textMuted,
                                               ),
                                             ),
+                                            const SizedBox(height: 4),
+                                            FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(
+                                                breakdown.suggestedPortionPrice
+                                                    .toCurrencyString(symbol: config.currencySymbol),
+                                                style: const TextStyle(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppColors.profitGreen,
+                                                ),
+                                              ),
+                                            ),
                                           ],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          breakdown.suggestedPortionPrice
-                                              .toCurrencyString(symbol: config.currencySymbol),
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.profitGreen,
-                                          ),
                                         ),
                                       ),
                                     ],

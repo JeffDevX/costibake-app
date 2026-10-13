@@ -11,8 +11,13 @@ import '../bloc/catalog_event.dart';
 
 class PackagingFormScreen extends StatefulWidget {
   final Packaging? packaging;
+  final String? initialName;
 
-  const PackagingFormScreen({super.key, this.packaging});
+  const PackagingFormScreen({
+    super.key,
+    this.packaging,
+    this.initialName,
+  });
 
   @override
   State<PackagingFormScreen> createState() => _PackagingFormScreenState();
@@ -47,7 +52,8 @@ class _PackagingFormScreenState extends State<PackagingFormScreen> {
   void initState() {
     super.initState();
     final p = widget.packaging;
-    _nameController = TextEditingController(text: p?.name ?? '');
+    _nameController =
+        TextEditingController(text: p?.name ?? widget.initialName ?? '');
     _costController = TextEditingController(
       text: p != null ? p.packageCost.toString() : '',
     );

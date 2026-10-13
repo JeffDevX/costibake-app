@@ -75,3 +75,29 @@ class DeletePackaging extends CatalogEvent {
   @override
   List<Object?> get props => [id, force];
 }
+
+/// Filter catalog items by search text query and category (JEF-10)
+class FilterCatalog extends CatalogEvent {
+  final String? query;
+  final String? ingredientCategory;
+  final String? packagingCategory;
+  final bool clearIngredientCategory;
+  final bool clearPackagingCategory;
+
+  const FilterCatalog({
+    this.query,
+    this.ingredientCategory,
+    this.packagingCategory,
+    this.clearIngredientCategory = false,
+    this.clearPackagingCategory = false,
+  });
+
+  @override
+  List<Object?> get props => [
+        query,
+        ingredientCategory,
+        packagingCategory,
+        clearIngredientCategory,
+        clearPackagingCategory,
+      ];
+}
