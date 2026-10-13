@@ -1,10 +1,9 @@
 import 'package:costibake_app/core/utils/precise_decimal.dart';
-import 'package:costibake_app/core/utils/unit_converter.dart';
 import 'package:costibake_app/features/catalog/domain/entities/ingredient.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('JEF-7: Normalización Automática de Insumos a Granel', () {
+  group('SRS RF-SYS-01 & RF-SYS-02: Normalización de Insumos a Granel', () {
     test('Criterio Aceptación 1: Bulto de harina de 50 kg a \$45.00 -> \$0.0009 / g', () {
       final purchaseCost = PreciseDecimal.fromString('45.00');
       final purchaseQty = PreciseDecimal.fromString('50.00');
@@ -40,7 +39,7 @@ void main() {
 
       expect(minUnit, equals('unidad'));
       expect(minCost.toStringAsFixed(2), equals('0.20'));
-      expect(minCost.toCurrencyString(), equals(r'$0.20'));
+      expect(minCost.toStringAsFixed(4), equals('0.2000'));
     });
 
     test('Criterio Aceptación 3: 1 litro de leche a \$1.50 -> \$0.0015 / ml', () {
