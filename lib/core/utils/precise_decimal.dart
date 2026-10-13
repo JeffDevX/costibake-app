@@ -10,7 +10,7 @@ class PreciseDecimal extends Equatable implements Comparable<PreciseDecimal> {
 
   const PreciseDecimal._(this._scaledValue);
 
-  static const PreciseDecimal zero = PreciseDecimal._(BigInt.zero);
+  static final PreciseDecimal zero = PreciseDecimal._(BigInt.zero);
   static final PreciseDecimal one = PreciseDecimal._(BigInt.from(1000000));
 
   /// Creates a PreciseDecimal from a string representation (e.g., "12.3456").
@@ -70,9 +70,19 @@ class PreciseDecimal extends Equatable implements Comparable<PreciseDecimal> {
     if (other._scaledValue == BigInt.zero) {
       throw const FormatException('División por cero en cálculo de precisión');
     }
-    // (_scaledValue * 10^6) / other._scaledValue
+    // (_scaledValue * 10^6) / other._scaledValue with symmetric rounding
     final scaledNumerator = _scaledValue * _scaleMultiplier;
     final quotient = scaledNumerator ~/ other._scaledValue;
+    final remainder = (scaledNumerator % other._scaledValue).abs();
+    final half = (other._scaledValue.abs() + BigInt.one) ~/ BigInt.from(2);
+
+    final isNegativeResult =
+        (_scaledValue < BigInt.zero) ^ (other._scaledValue < BigInt.zero);
+    if (remainder >= half) {
+      return PreciseDecimal._(
+        isNegativeResult ? quotient - BigInt.one : quotient + BigInt.one,
+      );
+    }
     return PreciseDecimal._(quotient);
   }
 
@@ -96,8 +106,6 @@ class PreciseDecimal extends Equatable implements Comparable<PreciseDecimal> {
     final integerPart = absolute ~/ _scaleMultiplier;
     final remainder = absolute % _scaleMultiplier;
 
-    final fracString = remainder.toString().padLeft(internalScale, '0');
-
     if (fractionDigits == 0) {
       // Round to nearest integer
       final half = _scaleMultiplier ~/ BigInt.from(2);
@@ -108,13 +116,14 @@ class PreciseDecimal extends Equatable implements Comparable<PreciseDecimal> {
     // Determine rounding for the requested fractionDigits
     final cutoff = internalScale - fractionDigits;
     final divisor = BigInt.from(10).pow(cutoff);
-    final half = divisor ~/ BigInt.from(2);
-
-    final subRemainder = remainder % divisor;
     var truncatedFrac = remainder ~/ divisor;
 
-    if (subRemainder >= half) {
-      truncatedFrac += BigInt.one;
+    if (cutoff > 0) {
+      final half = divisor ~/ BigInt.from(2);
+      final subRemainder = remainder % divisor;
+      if (subRemainder >= half) {
+        truncatedFrac += BigInt.one;
+      }
     }
 
     // If rounding up overflows the requested fractionDigits
