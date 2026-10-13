@@ -100,7 +100,7 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
     Emitter<CatalogState> emit,
   ) async {
     try {
-      await packagingRepository.deletePackaging(event.id);
+      await packagingRepository.deletePackaging(event.id, force: event.force);
       add(const LoadCatalog());
     } catch (e) {
       emit(CatalogError(e.toString()));

@@ -68,9 +68,10 @@ class UpdatePackaging extends CatalogEvent {
 /// Delete packaging item
 class DeletePackaging extends CatalogEvent {
   final String id;
+  final bool force;
 
-  const DeletePackaging(this.id);
+  const DeletePackaging(this.id, {this.force = false});
 
   @override
-  List<Object?> get props => [id];
+  List<Object?> get props => [id, force];
 }
