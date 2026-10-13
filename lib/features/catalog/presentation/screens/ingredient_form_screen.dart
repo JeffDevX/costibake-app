@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/precise_decimal.dart';
-import '../../../../core/utils/unit_converter.dart';
+import 'package:costibake_app/core/constants/app_breakpoints.dart';
+import 'package:costibake_app/core/theme/app_colors.dart';
+import 'package:costibake_app/core/utils/precise_decimal.dart';
+import 'package:costibake_app/core/utils/unit_converter.dart';
+import 'package:costibake_app/core/widgets/responsive_center.dart';
 import '../../domain/entities/ingredient.dart';
 import '../bloc/catalog_bloc.dart';
 import '../bloc/catalog_event.dart';
@@ -207,59 +209,62 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
       appBar: AppBar(
         title: Text(isEditing ? 'Editar Insumo' : 'Registrar Insumo a Granel'),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Banner de Normalización en Tiempo Real
-            _buildNormalizationBanner(),
-            const SizedBox(height: 20),
+      body: ResponsiveCenter(
+        maxWidth: AppBreakpoints.maxFormWidth,
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            children: [
+              // Banner de Normalización en Tiempo Real
+              _buildNormalizationBanner(),
+              const SizedBox(height: 20),
 
-            // Nombre
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Nombre del Insumo *',
-                hintText: 'Ej. Harina de Trigo Especial, Leche Entera',
-                prefixIcon: Icon(Icons.bakery_dining_outlined),
+              // Nombre
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre del Insumo *',
+                  hintText: 'Ej. Harina de Trigo Especial, Leche Entera',
+                  prefixIcon: Icon(Icons.bakery_dining_outlined),
+                ),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'El nombre del insumo es obligatorio';
+                  }
+                  return null;
+                },
               ),
-              validator: (val) {
-                if (val == null || val.trim().isEmpty) {
-                  return 'El nombre del insumo es obligatorio';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Categoría
-            DropdownButtonFormField<String>(
-              value: _selectedCategory,
-              decoration: const InputDecoration(
-                labelText: 'Categoría Culinaria *',
-                prefixIcon: Icon(Icons.category_outlined),
+              // Categoría
+              DropdownButtonFormField<String>(
+                initialValue: _selectedCategory,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Categoría Culinaria *',
+                  prefixIcon: Icon(Icons.category_outlined),
+                ),
+                items: categories.map((cat) {
+                  return DropdownMenuItem(
+                    value: cat,
+                    child: Text(cat, overflow: TextOverflow.ellipsis),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedCategory = val);
+                },
               ),
-              items: categories.map((cat) {
-                return DropdownMenuItem(
-                  value: cat,
-                  child: Text(cat),
-                );
-              }).toList(),
-              onChanged: (val) {
-                if (val != null) setState(() => _selectedCategory = val);
-              },
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Fila: Unidad Comercial de Compra y Cantidad
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedUnit,
+              // Unidad Comercial de Compra y Cantidad (Adaptive Stack or Row)
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 450;
+
+                  final unitDropdown = DropdownButtonFormField<String>(
+                    initialValue: _selectedUnit,
+                    isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: 'Unidad Comercial *',
                       prefixIcon: Icon(Icons.scale_outlined),
@@ -267,7 +272,10 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
                     items: commercialUnits.map((item) {
                       return DropdownMenuItem(
                         value: item['value']!,
-                        child: Text('${item['label']} [${item['group']}]'),
+                        child: Text(
+                          '${item['label']} [${item['group']}]',
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -276,12 +284,9 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
                         _recalculateNormalization();
                       }
                     },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: TextFormField(
+                  );
+
+                  final quantityField = TextFormField(
                     controller: _quantityController,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -289,6 +294,7 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
                     decoration: const InputDecoration(
                       labelText: 'Cantidad *',
                       hintText: 'Ej. 50, 1, 30',
+                      prefixIcon: Icon(Icons.pin_outlined),
                     ),
                     onChanged: (_) => _recalculateNormalization(),
                     validator: (val) {
@@ -305,11 +311,35 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
                       }
                       return null;
                     },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+                  );
+
+                  if (isCompact) {
+                    return Column(
+                      children: [
+                        unitDropdown,
+                        const SizedBox(height: 16),
+                        quantityField,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: unitDropdown,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: quantityField,
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
 
             // Costo Total Pagado
             TextFormField(
@@ -403,17 +433,21 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
               child: ElevatedButton.icon(
                 onPressed: _saveIngredient,
                 icon: const Icon(Icons.save),
-                label: Text(
-                  isEditing ? 'Actualizar Insumo' : 'Registrar Insumo a Granel',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    isEditing ? 'Actualizar Insumo' : 'Registrar Insumo a Granel',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildNormalizationBanner() {
     final hasValidCalculation = _previewMinCost > PreciseDecimal.zero;
@@ -423,7 +457,7 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
       decoration: BoxDecoration(
         color: hasValidCalculation
             ? AppColors.surfaceHighlight
-            : AppColors.backgroundCard,
+            : AppColors.surfaceCard,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: hasValidCalculation
@@ -444,12 +478,14 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
                     : AppColors.textMuted,
               ),
               const SizedBox(width: 8),
-              const Text(
-                'Normalización Automática a Unidad Mínima (RF-SYS-02)',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textEspresso,
+              const Expanded(
+                child: Text(
+                  'Normalización Automática a Unidad Mínima (RF-SYS-02)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textEspresso,
+                  ),
                 ),
               ),
             ],
@@ -457,36 +493,50 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                hasValidCalculation
-                    ? '\$${_previewMinCost.toStringAsFixed(6)} / $_previewBaseUnit'
-                    : '-- / $_previewBaseUnit',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: hasValidCalculation
-                      ? AppColors.primaryDarkCaramel
-                      : AppColors.textMuted,
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    hasValidCalculation
+                        ? '\$${_previewMinCost.toStringAsFixed(6)} / $_previewBaseUnit'
+                        : '-- / $_previewBaseUnit',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: hasValidCalculation
+                          ? AppColors.primaryDarkCaramel
+                          : AppColors.textMuted,
+                    ),
+                  ),
                 ),
               ),
-              Text(
-                'Base: $_previewBaseUnit',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textMuted,
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.borderWarm.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Base: $_previewBaseUnit',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted,
+                  ),
                 ),
               ),
             ],
           ),
           if (hasValidCalculation) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               'Conversión: ${_quantityController.text.trim()} $_selectedUnit = ${_previewBaseQty.toStringAsFixed(2)} $_previewBaseUnit brutas'
               '${_previewEffectiveQty < _previewBaseQty ? ' (Efectivas con merma: ${_previewEffectiveQty.toStringAsFixed(2)} $_previewBaseUnit)' : ''}',
+              softWrap: true,
               style: const TextStyle(
                 fontSize: 11,
                 color: AppColors.textMuted,
