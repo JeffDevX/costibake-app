@@ -75,7 +75,7 @@ class PackagingLocalDataSourceImpl implements PackagingLocalDataSource {
   @override
   Future<List<String>> getUsageInRecipes(String packagingId) async {
     final db = await appDatabase.database;
-    final query = '''
+    const query = '''
       SELECT DISTINCT r.nombre 
       FROM ${DatabaseTables.tableRecetaEmpaque} re
       INNER JOIN ${DatabaseTables.tableReceta} r ON re.receta_id = r.id
@@ -87,8 +87,6 @@ class PackagingLocalDataSourceImpl implements PackagingLocalDataSource {
 
   @override
   Future<void> delete(String id, {bool force = false}) async {
-    final db = await appDatabase.database;
-
     final affectedRecipes = await getUsageInRecipes(id);
     if (affectedRecipes.isNotEmpty && !force) {
       throw DependencyConstraintException(

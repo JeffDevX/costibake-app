@@ -26,10 +26,10 @@ class DependencyConstraintFailure extends Failure {
   final List<String> affectedRecipeNames;
 
   const DependencyConstraintFailure(
-    super.message, {
+    String message, {
     this.affectedRecipeNames = const [],
-    super.code,
-  });
+    String? code,
+  }) : super(message, code);
 
   @override
   List<Object?> get props => [message, code, affectedRecipeNames];

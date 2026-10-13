@@ -170,7 +170,7 @@ class RecipeLocalDataSourceImpl implements RecipeLocalDataSource {
     DatabaseExecutor db,
     String recipeId,
   ) async {
-    final query = '''
+    const query = '''
       SELECT ri.id, ri.receta_id, ri.insumo_id, ri.cantidad, ri.unidad, ri.notas,
              i.nombre as insumo_nombre, i.costo_unitario_minimo
       FROM ${DatabaseTables.tableRecetaInsumo} ri
@@ -185,7 +185,7 @@ class RecipeLocalDataSourceImpl implements RecipeLocalDataSource {
     DatabaseExecutor db,
     String recipeId,
   ) async {
-    final query = '''
+    const query = '''
       SELECT re.id, re.receta_id, re.empaque_id, re.cantidad_piezas, re.notas,
              e.nombre as empaque_nombre, e.costo_unitario
       FROM ${DatabaseTables.tableRecetaEmpaque} re

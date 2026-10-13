@@ -32,13 +32,17 @@ class UnitConverter {
   static final PreciseDecimal mlPerTeaspoon = PreciseDecimal.fromString('4.929');
   static final PreciseDecimal mlPerFluidOunce = PreciseDecimal.fromString('29.5735');
   static final PreciseDecimal mlPerLiter = PreciseDecimal.fromInt(1000);
+  static final PreciseDecimal mlPerGallon = PreciseDecimal.fromString('3785.41');
 
-  // Mass to grams factors
+  // Mass to grams factors (International Standards)
   static final PreciseDecimal gramsPerKilogram = PreciseDecimal.fromInt(1000);
   static final PreciseDecimal gramsPerPound = PreciseDecimal.fromString('453.59237');
-  static final PreciseDecimal gramsPerOunce = PreciseDecimal.fromString('28.34952');
+  static final PreciseDecimal gramsPerOunce = PreciseDecimal.fromString('28.3495');
 
-  /// Converts culinary volume (cups, tbsp, tsp, ml, l) to milliliters
+  // Count factors
+  static final PreciseDecimal unitsPerDozen = PreciseDecimal.fromInt(12);
+
+  /// Converts culinary volume (cups, tbsp, tsp, ml, l, gal) to milliliters
   static PreciseDecimal toMilliliters(PreciseDecimal quantity, String unit) {
     switch (unit.toLowerCase().trim()) {
       case 'ml':
@@ -49,6 +53,11 @@ class UnitConverter {
       case 'litro':
       case 'litros':
         return quantity * mlPerLiter;
+      case 'gal':
+      case 'galon':
+      case 'galón':
+      case 'galones':
+        return quantity * mlPerGallon;
       case 'taza':
       case 'tazas':
       case 'cup':
@@ -94,6 +103,47 @@ class UnitConverter {
         return quantity * gramsPerOunce;
       default:
         return quantity;
+    }
+  }
+
+  /// Converts count items (docena, unidad) to single units
+  static PreciseDecimal toUnits(PreciseDecimal quantity, String unit) {
+    switch (unit.toLowerCase().trim()) {
+      case 'docena':
+      case 'docenas':
+      case 'dz':
+        return quantity * unitsPerDozen;
+      case 'unidad':
+      case 'unidades':
+      case 'u':
+      case 'pza':
+      case 'pzas':
+      default:
+        return quantity;
+    }
+  }
+
+  /// Returns standard base unit code: 'g' for mass, 'ml' for volume, 'unidad' for count
+  static String determineBaseUnit(String unit) {
+    final u = unit.toLowerCase().trim();
+    if (['kg', 'kilo', 'kilogramo', 'kilogramos', 'g', 'gramo', 'gramos', 'lb', 'libra', 'libras', 'oz', 'onza', 'onzas'].contains(u)) {
+      return 'g';
+    }
+    if (['l', 'litro', 'litros', 'ml', 'mililitro', 'mililitros', 'gal', 'galon', 'galón', 'galones', 'taza', 'cda', 'cdta', 'fl_oz'].contains(u)) {
+      return 'ml';
+    }
+    return 'unidad';
+  }
+
+  /// Converts commercial quantity to base SI or count quantity (g, ml, or units)
+  static PreciseDecimal convertToBaseQuantity(PreciseDecimal quantity, String unit) {
+    final base = determineBaseUnit(unit);
+    if (base == 'g') {
+      return toGrams(quantity, unit);
+    } else if (base == 'ml') {
+      return toMilliliters(quantity, unit);
+    } else {
+      return toUnits(quantity, unit);
     }
   }
 

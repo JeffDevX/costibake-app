@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/theme/app_colors.dart';
+import 'package:costibake_app/core/constants/app_breakpoints.dart';
+import 'package:costibake_app/core/constants/app_constants.dart';
+import 'package:costibake_app/core/theme/app_colors.dart';
+import 'package:costibake_app/core/widgets/responsive_center.dart';
 import '../bloc/recipes_bloc.dart';
 import '../bloc/recipes_state.dart';
 
@@ -36,52 +38,61 @@ class RecipesScreen extends StatelessWidget {
               );
             }
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: recipes.length,
-              itemBuilder: (context, index) {
-                final recipe = recipes[index];
-                final isIncomplete =
-                    recipe.status == AppConstants.recipeStatusIncomplete;
+            return ResponsiveCenter(
+              maxWidth: AppBreakpoints.maxContentWidth,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: recipes.length,
+                itemBuilder: (context, index) {
+                  final recipe = recipes[index];
+                  final isIncomplete =
+                      recipe.status == AppConstants.recipeStatusIncomplete;
 
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    title: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            recipe.name,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        if (isIncomplete)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.costRedLight,
-                              borderRadius: BorderRadius.circular(8),
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: ListTile(
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              recipe.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.w600),
                             ),
-                            child: const Text(
-                              'REVISIÓN REQUERIDA',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.costRed,
+                          ),
+                          if (isIncomplete) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.costRedLight,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                'REVISIÓN REQUERIDA',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.costRed,
+                                ),
                               ),
                             ),
-                          ),
-                      ],
+                          ],
+                        ],
+                      ),
+                      subtitle: Text(
+                        '${recipe.yieldPortions} porciones • ${recipe.totalTimeMinutes} min de preparación'
+                        '${recipe.moldDimension != null ? ' • Molde ${recipe.moldDimension}' : ''}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
                     ),
-                    subtitle: Text(
-                      '${recipe.yieldPortions} porciones • ${recipe.totalTimeMinutes} min de preparación'
-                      '${recipe.moldDimension != null ? ' • Molde ${recipe.moldDimension}' : ''}',
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             );
           }
 

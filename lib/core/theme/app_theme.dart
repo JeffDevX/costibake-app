@@ -28,7 +28,7 @@ class AppTheme {
           letterSpacing: -0.3,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.surfaceCard,
         elevation: 1,
         shadowColor: AppColors.textEspresso.withAlpha(20),
