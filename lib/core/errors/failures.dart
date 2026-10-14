@@ -34,3 +34,21 @@ class DependencyConstraintFailure extends Failure {
   @override
   List<Object?> get props => [message, code, affectedRecipeNames];
 }
+
+class ConversionFailure extends Failure {
+  final String? fromUnit;
+  final String? toUnit;
+
+  const ConversionFailure(
+    String message, {
+    this.fromUnit,
+    this.toUnit,
+    String? code,
+  }) : super(message, code);
+
+  @override
+  List<Object?> get props => [message, code, fromUnit, toUnit];
+}
+
+
+
