@@ -114,23 +114,24 @@ void main() {
     });
 
     group('BR-CNV-03: Conversiones Cruzadas Masa <-> Volumen con Densidad', () {
-      test('Conversión de taza de harina a gramos usando matriz de densidades', () {
-        // Harina de trigo: ~0.5072 g/ml. 1 taza (240 ml) * 0.5072 = 121.728 g
+      test('Conversión de taza de harina a gramos usando matriz de densidades (BR-DEN-02: 125 g/taza)', () {
+        // Harina de trigo: ~0.520833 g/ml (125 g / 240 ml). 1 taza (240 ml) * (125/240) = 125.00 g
         final density = CulinaryDensityMatrix.getDensity('harina_trigo');
         final grams = UnitConverter.convertUnit(1.0, 'taza', 'g', density: density);
-        expect(grams.toStringAsFixed(2), '121.73');
+        expect(grams.toStringAsFixed(2), '125.00');
       });
 
       test('Conversión bidireccional gramos de leche a mililitros', () {
-        // Leche entera: 1.0300 g/ml. 500 g / 1.03 = 485.4368 ml
+        // Leche entera: 1.020833 g/ml. 500 g / 1.020833 = 489.80 ml
         final density = CulinaryDensityMatrix.getDensity('leche_entera');
         final ml = UnitConverter.convertUnit(500, 'g', 'ml', density: density);
-        expect(ml.toStringAsFixed(2), '485.44');
+        expect(ml.toStringAsFixed(2), '489.80');
 
         // De regreso a gramos
         final backGrams = UnitConverter.convertUnit(ml, 'ml', 'g', density: density);
         expect(backGrams.toStringAsFixed(2), '500.00');
       });
+
 
       test('Densidad cero o negativa arroja CrossDimensionConversionException', () {
         expect(

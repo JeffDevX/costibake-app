@@ -2,20 +2,59 @@ import '../constants/culinary_units.dart';
 import '../errors/exceptions.dart';
 import 'precise_decimal.dart';
 
-/// Predefined culinary densities (g/ml) for pastry ingredients to prevent "1 cup = 250g" errors.
+/// Predefined culinary densities (g/ml) and grams/cup for pastry ingredients conforming to BR-DEN-02.
 class CulinaryDensityMatrix {
+  /// Standard grams per culinary cup (240ml) conforming to BR-DEN-02
+  static final Map<String, PreciseDecimal> standardGramsPerCup = {
+    'harina': PreciseDecimal.fromString('125.0000'),
+    'harina_trigo': PreciseDecimal.fromString('125.0000'),
+    'harina_de_trigo_todo_uso': PreciseDecimal.fromString('125.0000'),
+    'azucar_blanca': PreciseDecimal.fromString('200.0000'),
+    'azucar_comun': PreciseDecimal.fromString('200.0000'),
+    'azucar_refinada': PreciseDecimal.fromString('200.0000'),
+    'azucar': PreciseDecimal.fromString('200.0000'),
+    'azucar_morena': PreciseDecimal.fromString('220.0000'),
+    'azucar_glass': PreciseDecimal.fromString('120.0000'),
+    'azucar_impalpable': PreciseDecimal.fromString('120.0000'),
+    'mantequilla': PreciseDecimal.fromString('227.0000'),
+    'aceite_vegetal': PreciseDecimal.fromString('218.0000'),
+    'aceite': PreciseDecimal.fromString('218.0000'),
+    'miel': PreciseDecimal.fromString('340.0000'),
+    'miel_de_abeja': PreciseDecimal.fromString('340.0000'),
+    'jarabe_de_maiz': PreciseDecimal.fromString('340.0000'),
+    'cacao_polvo': PreciseDecimal.fromString('100.0000'),
+    'cacao': PreciseDecimal.fromString('100.0000'),
+    'leche_entera': PreciseDecimal.fromString('245.0000'),
+    'leche': PreciseDecimal.fromString('245.0000'),
+    'agua': PreciseDecimal.fromString('240.0000'),
+    'agua_pura': PreciseDecimal.fromString('240.0000'),
+  };
+
+  /// Predefined culinary densities (g/ml) for pastry ingredients to prevent "1 cup = 250g" errors.
+  /// BR-DEN-02: density (g/ml) = gramsPerCup / 240.0 ml
   static final Map<String, PreciseDecimal> standardDensities = {
-    'harina': PreciseDecimal.fromString('0.5072'), // 1 cup ~ 121.7 g (0.5072 g/ml)
-    'harina_trigo': PreciseDecimal.fromString('0.5072'),
-    'azucar_blanca': PreciseDecimal.fromString('0.8453'), // 1 cup ~ 200 g (0.8453 g/ml)
-    'azucar_morena': PreciseDecimal.fromString('0.9299'), // 1 cup ~ 220 g (0.9299 g/ml)
-    'azucar_glass': PreciseDecimal.fromString('0.5072'), // 1 cup ~ 120 g (0.5072 g/ml)
-    'mantequilla': PreciseDecimal.fromString('0.9595'), // 1 cup ~ 227 g (0.9595 g/ml)
-    'cacao_polvo': PreciseDecimal.fromString('0.4227'), // 1 cup ~ 100 g (0.4227 g/ml)
-    'aceite_vegetal': PreciseDecimal.fromString('0.9214'), // 1 cup ~ 218 g (0.9214 g/ml)
-    'leche_entera': PreciseDecimal.fromString('1.0300'), // 1 cup ~ 244 g (1.0300 g/ml)
-    'agua': PreciseDecimal.fromString('1.0000'), // 1 cup ~ 240 g (1.0000 g/ml)
-    'miel': PreciseDecimal.fromString('1.4371'), // 1 cup ~ 345 g (1.4371 g/ml)
+    'harina': PreciseDecimal.fromString('0.520833'), // 125 g / 240 ml
+    'harina_trigo': PreciseDecimal.fromString('0.520833'),
+    'harina_de_trigo_todo_uso': PreciseDecimal.fromString('0.520833'),
+    'azucar_blanca': PreciseDecimal.fromString('0.833333'), // 200 g / 240 ml
+    'azucar_comun': PreciseDecimal.fromString('0.833333'),
+    'azucar_refinada': PreciseDecimal.fromString('0.833333'),
+    'azucar': PreciseDecimal.fromString('0.833333'),
+    'azucar_morena': PreciseDecimal.fromString('0.916667'), // 220 g / 240 ml
+    'azucar_glass': PreciseDecimal.fromString('0.500000'), // 120 g / 240 ml
+    'azucar_impalpable': PreciseDecimal.fromString('0.500000'),
+    'mantequilla': PreciseDecimal.fromString('0.945833'), // 227 g / 240 ml
+    'aceite_vegetal': PreciseDecimal.fromString('0.908333'), // 218 g / 240 ml
+    'aceite': PreciseDecimal.fromString('0.908333'),
+    'miel': PreciseDecimal.fromString('1.416667'), // 340 g / 240 ml
+    'miel_de_abeja': PreciseDecimal.fromString('1.416667'),
+    'jarabe_de_maiz': PreciseDecimal.fromString('1.416667'),
+    'cacao_polvo': PreciseDecimal.fromString('0.416667'), // 100 g / 240 ml
+    'cacao': PreciseDecimal.fromString('0.416667'),
+    'leche_entera': PreciseDecimal.fromString('1.020833'), // 245 g / 240 ml
+    'leche': PreciseDecimal.fromString('1.020833'),
+    'agua': PreciseDecimal.fromString('1.000000'), // 240 g / 240 ml
+    'agua_pura': PreciseDecimal.fromString('1.000000'),
   };
 
   static PreciseDecimal getDensity(String key, [PreciseDecimal? fallback]) {
@@ -24,7 +63,15 @@ class CulinaryDensityMatrix {
         fallback ??
         PreciseDecimal.fromString('1.0000');
   }
+
+  static PreciseDecimal getGramsPerCup(String key, [PreciseDecimal? fallback]) {
+    final normalized = key.toLowerCase().trim().replaceAll(' ', '_');
+    return standardGramsPerCup[normalized] ??
+        fallback ??
+        PreciseDecimal.fromString('240.0000');
+  }
 }
+
 
 /// Bidirectional culinary unit conversion engine with exact decimal arithmetic.
 /// Conforms to RF-SYS-06, RF-SYS-07, RNF-02, BR-CNV-01, BR-CNV-02, BR-CNV-03, BR-CNV-04.

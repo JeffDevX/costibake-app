@@ -32,15 +32,86 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
   late TextEditingController _costController;
   late TextEditingController _wasteController;
   late TextEditingController _notesController;
+  late TextEditingController _densityController;
 
   late String _selectedCategory;
   late String _selectedUnit;
+  String? _selectedDensityPresetKey;
 
   // Calculation state preview
   PreciseDecimal _previewMinCost = PreciseDecimal.zero;
   String _previewBaseUnit = 'g';
   PreciseDecimal _previewBaseQty = PreciseDecimal.zero;
   PreciseDecimal _previewEffectiveQty = PreciseDecimal.zero;
+
+  static const List<Map<String, dynamic>> densityPresets = [
+    {
+      'label': 'Sin densidad preconfigurada',
+      'key': null,
+      'gPerCup': null,
+      'gPerMl': null,
+    },
+    {
+      'label': 'Harina de trigo todo uso (125 g/taza)',
+      'key': 'harina_trigo',
+      'gPerCup': '125.0',
+      'gPerMl': '0.520833',
+    },
+    {
+      'label': 'Azúcar refinada / blanca (200 g/taza)',
+      'key': 'azucar_blanca',
+      'gPerCup': '200.0',
+      'gPerMl': '0.833333',
+    },
+    {
+      'label': 'Azúcar glass / impalpable (120 g/taza)',
+      'key': 'azucar_glass',
+      'gPerCup': '120.0',
+      'gPerMl': '0.500000',
+    },
+    {
+      'label': 'Mantequilla (227 g/taza)',
+      'key': 'mantequilla',
+      'gPerCup': '227.0',
+      'gPerMl': '0.945833',
+    },
+    {
+      'label': 'Aceite vegetal (218 g/taza)',
+      'key': 'aceite_vegetal',
+      'gPerCup': '218.0',
+      'gPerMl': '0.908333',
+    },
+    {
+      'label': 'Miel de abeja / jarabe (340 g/taza)',
+      'key': 'miel',
+      'gPerCup': '340.0',
+      'gPerMl': '1.416667',
+    },
+    {
+      'label': 'Cacao en polvo (100 g/taza)',
+      'key': 'cacao_polvo',
+      'gPerCup': '100.0',
+      'gPerMl': '0.416667',
+    },
+    {
+      'label': 'Leche entera (245 g/taza)',
+      'key': 'leche_entera',
+      'gPerCup': '245.0',
+      'gPerMl': '1.020833',
+    },
+    {
+      'label': 'Agua pura (240 g/taza)',
+      'key': 'agua_pura',
+      'gPerCup': '240.0',
+      'gPerMl': '1.000000',
+    },
+    {
+      'label': 'Personalizado (ingresar g/ml)',
+      'key': 'custom',
+      'gPerCup': null,
+      'gPerMl': null,
+    },
+  ];
 
   static const List<String> categories = [
     'Harinas y Secos',
@@ -86,12 +157,29 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
       text: ing != null ? ing.wastePercentage.toString() : '0',
     );
     _notesController = TextEditingController(text: ing?.notes ?? '');
+    _densityController = TextEditingController(
+      text: ing?.densityGPerMl != null ? ing!.densityGPerMl!.toString() : '',
+    );
+
+    if (ing?.densityGPerMl != null) {
+      final currentGPerMl = ing!.densityGPerMl!.toStringAsFixed(4);
+      final match = densityPresets.firstWhere(
+        (p) =>
+            p['gPerMl'] != null &&
+            (p['gPerMl'] as String).startsWith(currentGPerMl.substring(0, 4)),
+        orElse: () => {'key': 'custom'},
+      );
+      _selectedDensityPresetKey = match['key'] as String?;
+    } else {
+      _selectedDensityPresetKey = null;
+    }
 
     _selectedCategory = ing?.category ?? categories.first;
     _selectedUnit = ing?.purchaseUnit ?? 'kg';
 
     _recalculateNormalization();
   }
+
 
   @override
   void dispose() {
@@ -100,6 +188,7 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
     _costController.dispose();
     _wasteController.dispose();
     _notesController.dispose();
+    _densityController.dispose();
     super.dispose();
   }
 
@@ -172,6 +261,11 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
       wastePercentage: waste,
     );
 
+    final densityText = _densityController.text.trim();
+    final density = densityText.isNotEmpty
+        ? PreciseDecimal.fromString(densityText)
+        : null;
+
     final isEditing = widget.ingredient != null;
     final ingredientToSave = Ingredient(
       id: widget.ingredient?.id ?? const Uuid().v4(),
@@ -183,9 +277,11 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
       wastePercentage: waste,
       minimumUnitCost: minCost,
       minimumUnit: baseUnit,
+      densityGPerMl: density,
       notes: notes.isNotEmpty ? notes : null,
       updatedAt: DateTime.now(),
     );
+
 
     if (isEditing) {
       context.read<CatalogBloc>().add(UpdateIngredient(ingredientToSave));
@@ -421,6 +517,125 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
             ),
             const SizedBox(height: 16),
 
+            // Matriz de Densidad Culinaria (BR-DEN-01, BR-DEN-02, BR-DEN-03)
+            Card(
+              elevation: 0,
+              color: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withValues(alpha: 0.35),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.scale_outlined,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Matriz de Densidad Culinaria (Volumen a Peso)',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Permite costear con exactitud recetas en tazas, cucharadas o ml cuando compras por kilo o libra.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Preajuste dropdown
+                    DropdownButtonFormField<String?>(
+                      key: const Key('density_preset_dropdown'),
+                      isExpanded: true,
+                      initialValue: _selectedDensityPresetKey,
+                      decoration: const InputDecoration(
+                        labelText: 'Preajuste de Densidad Pastelera',
+                        prefixIcon: Icon(Icons.bookmark_added_outlined),
+                      ),
+                      items: densityPresets.map((preset) {
+                        return DropdownMenuItem<String?>(
+                          value: preset['key'] as String?,
+                          child: Text(
+                            preset['label'] as String,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedDensityPresetKey = val;
+                          if (val != null && val != 'custom') {
+                            final match = densityPresets.firstWhere(
+                              (p) => p['key'] == val,
+                              orElse: () => {},
+                            );
+                            if (match['gPerMl'] != null) {
+                              _densityController.text = match['gPerMl'] as String;
+                            }
+                          } else if (val == null) {
+                            _densityController.clear();
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Campo de densidad en g/ml
+                    TextFormField(
+                      key: const Key('density_g_ml_input'),
+                      controller: _densityController,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        labelText: 'Densidad del Insumo (g/ml)',
+                        hintText: 'Ej. 0.5208 (125 g/taza), 0.8333, 1.0000',
+                        prefixIcon: const Icon(Icons.science_outlined),
+                        suffixText: 'g/ml',
+                        helperText: _getDensityHelperText(),
+                      ),
+                      onChanged: (_) {
+                        setState(() {});
+                      },
+                      validator: (val) {
+                        if (val != null && val.trim().isNotEmpty) {
+                          try {
+                            final d = PreciseDecimal.fromString(val.trim());
+                            if (d <= PreciseDecimal.zero) {
+                              return 'La densidad debe ser estrictamente > 0';
+                            }
+                          } catch (_) {
+                            return 'Densidad numérica no válida';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
             // Notas opcionales
             TextFormField(
               controller: _notesController,
@@ -431,12 +646,14 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
                 prefixIcon: Icon(Icons.note_alt_outlined),
               ),
             ),
+
             const SizedBox(height: 28),
 
             // Botón de Guardar (Touch Target >= 48px)
             SizedBox(
               height: 52,
               child: ElevatedButton.icon(
+                key: const Key('btn_save_ingredient'),
                 onPressed: _saveIngredient,
                 icon: const Icon(Icons.save),
                 label: FittedBox(
@@ -553,4 +770,20 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
       ),
     );
   }
+
+  String? _getDensityHelperText() {
+    final text = _densityController.text.trim();
+    if (text.isEmpty) {
+      return 'Opcional. Permite convertir tazas o ml a gramos exactos.';
+    }
+    try {
+      final d = PreciseDecimal.fromString(text);
+      if (d > PreciseDecimal.zero) {
+        final gPerCup = d * UnitConverter.mlPerCup;
+        return '≈ ${gPerCup.toStringAsFixed(1)} g por taza estándar (240 ml)';
+      }
+    } catch (_) {}
+    return null;
+  }
 }
+
