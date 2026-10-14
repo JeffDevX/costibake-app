@@ -12,8 +12,13 @@ import '../bloc/catalog_event.dart';
 
 class IngredientFormScreen extends StatefulWidget {
   final Ingredient? ingredient;
+  final String? initialName;
 
-  const IngredientFormScreen({super.key, this.ingredient});
+  const IngredientFormScreen({
+    super.key,
+    this.ingredient,
+    this.initialName,
+  });
 
   @override
   State<IngredientFormScreen> createState() => _IngredientFormScreenState();
@@ -69,7 +74,8 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
   void initState() {
     super.initState();
     final ing = widget.ingredient;
-    _nameController = TextEditingController(text: ing?.name ?? '');
+    _nameController =
+        TextEditingController(text: ing?.name ?? widget.initialName ?? '');
     _quantityController = TextEditingController(
       text: ing != null ? ing.purchaseQuantity.toString() : '',
     );

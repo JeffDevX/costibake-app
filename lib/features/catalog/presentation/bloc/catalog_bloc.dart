@@ -19,19 +19,52 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
     on<AddPackaging>(_onAddPackaging);
     on<UpdatePackaging>(_onUpdatePackaging);
     on<DeletePackaging>(_onDeletePackaging);
+    on<FilterCatalog>(_onFilterCatalog);
   }
 
   Future<void> _onLoadCatalog(
     LoadCatalog event,
     Emitter<CatalogState> emit,
   ) async {
+    String currentQuery = '';
+    String? currentIngCat;
+    String? currentPackCat;
+    if (state is CatalogLoaded) {
+      final current = state as CatalogLoaded;
+      currentQuery = current.searchQuery;
+      currentIngCat = current.ingredientCategory;
+      currentPackCat = current.packagingCategory;
+    }
+
     emit(const CatalogLoading());
     try {
       final ingredients = await ingredientRepository.getAllIngredients();
       final packagings = await packagingRepository.getAllPackaging();
-      emit(CatalogLoaded(ingredients: ingredients, packagings: packagings));
+      emit(CatalogLoaded(
+        ingredients: ingredients,
+        packagings: packagings,
+        searchQuery: currentQuery,
+        ingredientCategory: currentIngCat,
+        packagingCategory: currentPackCat,
+      ));
     } catch (e) {
       emit(CatalogError(e.toString()));
+    }
+  }
+
+  Future<void> _onFilterCatalog(
+    FilterCatalog event,
+    Emitter<CatalogState> emit,
+  ) async {
+    if (state is CatalogLoaded) {
+      final current = state as CatalogLoaded;
+      emit(current.copyWith(
+        searchQuery: event.query,
+        ingredientCategory: event.ingredientCategory,
+        packagingCategory: event.packagingCategory,
+        clearIngredientCategory: event.clearIngredientCategory,
+        clearPackagingCategory: event.clearPackagingCategory,
+      ));
     }
   }
 

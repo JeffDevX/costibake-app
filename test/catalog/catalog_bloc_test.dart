@@ -67,66 +67,67 @@ class MockPackagingRepository implements PackagingRepository {
 }
 
 void main() {
-  late CatalogBloc catalogBloc;
-  late MockIngredientRepository ingredientRepository;
-  late MockPackagingRepository packagingRepository;
-
-  setUp(() {
-    ingredientRepository = MockIngredientRepository();
-    packagingRepository = MockPackagingRepository();
-    catalogBloc = CatalogBloc(
-      ingredientRepository: ingredientRepository,
-      packagingRepository: packagingRepository,
-    );
-  });
-
-  tearDown(() {
-    catalogBloc.close();
-  });
-
   group('CatalogBloc Unit Tests (Pure BLoC Pattern)', () {
+    late MockIngredientRepository ingredientRepository;
+    late MockPackagingRepository packagingRepository;
+    late CatalogBloc bloc;
+
+    setUp(() {
+      ingredientRepository = MockIngredientRepository();
+      packagingRepository = MockPackagingRepository();
+      bloc = CatalogBloc(
+        ingredientRepository: ingredientRepository,
+        packagingRepository: packagingRepository,
+      );
+    });
+
+    tearDown(() {
+      bloc.close();
+    });
+
     test('Initial state is CatalogInitial', () {
-      expect(catalogBloc.state, equals(const CatalogInitial()));
+      expect(bloc.state, equals(const CatalogInitial()));
     });
 
     test('Emits [CatalogLoading, CatalogLoaded] when LoadCatalog is added', () async {
       final expected = [
         const CatalogLoading(),
-        const CatalogLoaded(
-          ingredients: [],
-          packaging: [],
-        ),
+        const CatalogLoaded(ingredients: [], packagings: []),
       ];
 
-      expectLater(catalogBloc.stream, emitsInOrder(expected));
-      catalogBloc.add(const LoadCatalog());
+      final future = expectLater(bloc.stream, emitsInOrder(expected));
+      bloc.add(const LoadCatalog());
+      await future;
     });
 
     test('Adds ingredient and reloads catalog successfully', () async {
       final ingredient = Ingredient(
         id: 'ing-1',
-        name: 'Harina Fina de Trigo',
+        name: 'Harina de trigo',
         category: 'Secos',
+        purchaseCost: PreciseDecimal.fromString('3.50'),
+        purchaseQuantity: PreciseDecimal.fromInt(1),
         purchaseUnit: 'kg',
-        purchaseQuantity: PreciseDecimal.fromString('50.00'),
-        purchasePrice: PreciseDecimal.fromString('45.00'),
-        minimumUnit: 'g',
-        minimumUnitCost: PreciseDecimal.fromString('0.0009'),
         wastePercentage: PreciseDecimal.zero,
-        notes: 'Insumo lote inicial',
+        minimumUnitCost: PreciseDecimal.fromString('0.003500'),
+        minimumUnit: 'g',
         updatedAt: DateTime.now(),
       );
 
-      final expected = [
-        const CatalogLoading(),
-        CatalogLoaded(
-          ingredients: [ingredient],
-          packaging: const [],
-        ),
-      ];
+      bloc.add(AddIngredient(ingredient));
 
-      expectLater(catalogBloc.stream, emitsInOrder(expected));
-      catalogBloc.add(SaveIngredient(ingredient));
+      await expectLater(
+        bloc.stream,
+        emitsThrough(
+          predicate<CatalogState>((state) {
+            if (state is CatalogLoaded) {
+              return state.ingredients.length == 1 &&
+                  state.ingredients.first.name == 'Harina de trigo';
+            }
+            return false;
+          }),
+        ),
+      );
     });
   });
 }
