@@ -6,6 +6,7 @@ class DatabaseTables {
   static const String tableRecetaInsumo = 'RECETA_INSUMO';
   static const String tableRecetaEmpaque = 'RECETA_EMPAQUE';
   static const String tableConfiguracionNegocio = 'CONFIGURACION_NEGOCIO';
+  static const String tableMatrizDensidad = 'MATRIZ_DENSIDAD';
 
   static const String createTableInsumo = '''
     CREATE TABLE IF NOT EXISTS $tableInsumo (
@@ -90,6 +91,19 @@ class DatabaseTables {
     );
   ''';
 
+  static const String createTableMatrizDensidad = '''
+    CREATE TABLE IF NOT EXISTS $tableMatrizDensidad (
+      id TEXT PRIMARY KEY NOT NULL,
+      nombre_clave TEXT NOT NULL UNIQUE,
+      nombre_mostrado TEXT NOT NULL,
+      categoria TEXT NOT NULL,
+      gramos_por_taza TEXT NOT NULL,
+      densidad_g_ml TEXT NOT NULL,
+      es_estandar INTEGER NOT NULL DEFAULT 1,
+      fecha_actualizacion TEXT NOT NULL
+    );
+  ''';
+
   // Indexes for high-performance offline queries and joins
   static const List<String> createIndexes = [
     'CREATE INDEX IF NOT EXISTS idx_insumo_nombre ON $tableInsumo(nombre);',
@@ -100,5 +114,7 @@ class DatabaseTables {
     'CREATE INDEX IF NOT EXISTS idx_receta_insumo_insumo ON $tableRecetaInsumo(insumo_id);',
     'CREATE INDEX IF NOT EXISTS idx_receta_empaque_receta ON $tableRecetaEmpaque(receta_id);',
     'CREATE INDEX IF NOT EXISTS idx_receta_empaque_empaque ON $tableRecetaEmpaque(empaque_id);',
+    'CREATE INDEX IF NOT EXISTS idx_matriz_densidad_clave ON $tableMatrizDensidad(nombre_clave);',
   ];
 }
+
