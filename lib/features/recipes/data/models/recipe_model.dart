@@ -12,6 +12,8 @@ class RecipeModel extends Recipe {
     required super.bakeTimeMinutes,
     super.moldType,
     super.moldDimension,
+    super.laborHourlyRateOverride,
+    super.overheadPercentageOverride,
     required super.targetProfitMargin,
     required super.status,
     required super.createdAt,
@@ -31,6 +33,8 @@ class RecipeModel extends Recipe {
       bakeTimeMinutes: entity.bakeTimeMinutes,
       moldType: entity.moldType,
       moldDimension: entity.moldDimension,
+      laborHourlyRateOverride: entity.laborHourlyRateOverride,
+      overheadPercentageOverride: entity.overheadPercentageOverride,
       targetProfitMargin: entity.targetProfitMargin,
       status: entity.status,
       createdAt: entity.createdAt,
@@ -56,6 +60,12 @@ class RecipeModel extends Recipe {
       bakeTimeMinutes: map['tiempo_horneado_minutos'] as int,
       moldType: map['tamano_molde_tipo'] as String?,
       moldDimension: map['tamano_molde_dimension'] as String?,
+      laborHourlyRateOverride: map['tarifa_mano_obra_hora'] != null
+          ? PreciseDecimal.tryParse(map['tarifa_mano_obra_hora'] as String)
+          : null,
+      overheadPercentageOverride: map['porcentaje_overhead'] != null
+          ? PreciseDecimal.tryParse(map['porcentaje_overhead'] as String)
+          : null,
       targetProfitMargin:
           PreciseDecimal.fromString(map['margen_ganancia_porcentaje'] as String),
       status: map['estado'] as String,
@@ -77,6 +87,8 @@ class RecipeModel extends Recipe {
       'tiempo_horneado_minutos': bakeTimeMinutes,
       'tamano_molde_tipo': moldType,
       'tamano_molde_dimension': moldDimension,
+      'tarifa_mano_obra_hora': laborHourlyRateOverride?.toStringAsFixed(4),
+      'porcentaje_overhead': overheadPercentageOverride?.toStringAsFixed(4),
       'margen_ganancia_porcentaje': targetProfitMargin.toStringAsFixed(4),
       'estado': status,
       'fecha_creacion': createdAt.toIso8601String(),

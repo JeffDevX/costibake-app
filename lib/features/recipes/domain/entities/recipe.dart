@@ -12,6 +12,8 @@ class Recipe extends Equatable {
   final int bakeTimeMinutes;
   final String? moldType; // 'Redondo', 'Rectangular', 'Plancha'
   final String? moldDimension; // '20 cm / 8 in', '24 cm / 9.5 in'
+  final PreciseDecimal? laborHourlyRateOverride; // Nullable: inherits from business config if null (RF-SYS-16)
+  final PreciseDecimal? overheadPercentageOverride; // Nullable: inherits from business config if null (RF-SYS-15)
   final PreciseDecimal targetProfitMargin; // e.g. 40.0%
   final String status; // 'ACTIVA', 'BORRADOR', 'INCOMPLETA_REQUIERE_REVISION'
   final DateTime createdAt;
@@ -29,6 +31,8 @@ class Recipe extends Equatable {
     required this.bakeTimeMinutes,
     this.moldType,
     this.moldDimension,
+    this.laborHourlyRateOverride,
+    this.overheadPercentageOverride,
     required this.targetProfitMargin,
     required this.status,
     required this.createdAt,
@@ -96,6 +100,8 @@ class Recipe extends Equatable {
     int? bakeTimeMinutes,
     String? moldType,
     String? moldDimension,
+    PreciseDecimal? laborHourlyRateOverride,
+    PreciseDecimal? overheadPercentageOverride,
     PreciseDecimal? targetProfitMargin,
     String? status,
     DateTime? createdAt,
@@ -113,6 +119,10 @@ class Recipe extends Equatable {
       bakeTimeMinutes: bakeTimeMinutes ?? this.bakeTimeMinutes,
       moldType: moldType ?? this.moldType,
       moldDimension: moldDimension ?? this.moldDimension,
+      laborHourlyRateOverride:
+          laborHourlyRateOverride ?? this.laborHourlyRateOverride,
+      overheadPercentageOverride:
+          overheadPercentageOverride ?? this.overheadPercentageOverride,
       targetProfitMargin: targetProfitMargin ?? this.targetProfitMargin,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
@@ -133,6 +143,8 @@ class Recipe extends Equatable {
         bakeTimeMinutes,
         moldType,
         moldDimension,
+        laborHourlyRateOverride,
+        overheadPercentageOverride,
         targetProfitMargin,
         status,
         createdAt,
