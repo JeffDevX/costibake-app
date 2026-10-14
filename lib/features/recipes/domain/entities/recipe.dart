@@ -17,6 +17,7 @@ class Recipe extends Equatable {
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<RecipeIngredientItem> ingredients;
+  final List<RecipeSubRecipeItem> subRecipes;
   final List<RecipePackagingItem> packaging;
 
   const Recipe({
@@ -33,12 +34,94 @@ class Recipe extends Equatable {
     required this.createdAt,
     required this.updatedAt,
     this.ingredients = const [],
+    this.subRecipes = const [],
     this.packaging = const [],
   });
 
   bool get isActive => status == AppConstants.recipeStatusActive;
   bool get isIncomplete => status == AppConstants.recipeStatusIncomplete;
   int get totalTimeMinutes => prepTimeMinutes + bakeTimeMinutes;
+
+  /// Sum of all direct ingredient costs in this recipe (RF-SYS-11, BR-REC-03).
+  PreciseDecimal get totalIngredientsCost {
+    PreciseDecimal total = PreciseDecimal.zero;
+    for (final ing in ingredients) {
+      total += ing.calculateItemCost();
+    }
+    return total;
+  }
+
+  /// Sum of all nested sub-recipe costs prorated by their quantity factors (RF-SYS-10, BR-REC-04).
+  PreciseDecimal get totalSubRecipesCost {
+    PreciseDecimal total = PreciseDecimal.zero;
+    for (final sub in subRecipes) {
+      total += sub.calculateItemCost();
+    }
+    return total;
+  }
+
+  /// Sum of all packaging costs (boxes, boards, ribbons) directly allocated (RF-SYS-09).
+  PreciseDecimal get totalPackagingCost {
+    PreciseDecimal total = PreciseDecimal.zero;
+    for (final pack in packaging) {
+      total += pack.calculateItemCost();
+    }
+    return total;
+  }
+
+  /// Total direct costs (Ingredients + Sub-recipes + Packaging).
+  PreciseDecimal get totalDirectCost =>
+      totalIngredientsCost + totalSubRecipesCost + totalPackagingCost;
+
+  /// Returns all unique modular sections defined across ingredients and sub-recipes.
+  Set<String> get sections {
+    final set = <String>{};
+    for (final ing in ingredients) {
+      set.add(ing.section);
+    }
+    for (final sub in subRecipes) {
+      set.add(sub.section);
+    }
+    return set;
+  }
+
+  bool get hasModularComponents => subRecipes.isNotEmpty || sections.length > 1;
+
+  Recipe copyWith({
+    String? id,
+    String? name,
+    String? description,
+    int? yieldPortions,
+    int? prepTimeMinutes,
+    int? bakeTimeMinutes,
+    String? moldType,
+    String? moldDimension,
+    PreciseDecimal? targetProfitMargin,
+    String? status,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    List<RecipeIngredientItem>? ingredients,
+    List<RecipeSubRecipeItem>? subRecipes,
+    List<RecipePackagingItem>? packaging,
+  }) {
+    return Recipe(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      yieldPortions: yieldPortions ?? this.yieldPortions,
+      prepTimeMinutes: prepTimeMinutes ?? this.prepTimeMinutes,
+      bakeTimeMinutes: bakeTimeMinutes ?? this.bakeTimeMinutes,
+      moldType: moldType ?? this.moldType,
+      moldDimension: moldDimension ?? this.moldDimension,
+      targetProfitMargin: targetProfitMargin ?? this.targetProfitMargin,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      ingredients: ingredients ?? this.ingredients,
+      subRecipes: subRecipes ?? this.subRecipes,
+      packaging: packaging ?? this.packaging,
+    );
+  }
 
   @override
   List<Object?> get props => [
@@ -55,6 +138,7 @@ class Recipe extends Equatable {
         createdAt,
         updatedAt,
         ingredients,
+        subRecipes,
         packaging,
       ];
 }

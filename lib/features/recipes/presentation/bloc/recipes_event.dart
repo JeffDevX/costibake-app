@@ -8,9 +8,20 @@ abstract class RecipesEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Dispatched to load all recipes with their relational ingredients and packaging
+/// Dispatched to load all recipes with their relational ingredients, sub-recipes, and packaging
 class LoadRecipes extends RecipesEvent {
   const LoadRecipes();
+}
+
+/// Dispatched to filter in-memory recipes by search query or status
+class FilterRecipes extends RecipesEvent {
+  final String query;
+  final String? status;
+
+  const FilterRecipes({this.query = '', this.status});
+
+  @override
+  List<Object?> get props => [query, status];
 }
 
 /// Create a new recipe

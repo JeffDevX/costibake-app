@@ -10,6 +10,7 @@ class RecipesBloc extends Bloc<RecipesEvent, RecipesState> {
     required this.recipeRepository,
   }) : super(const RecipesInitial()) {
     on<LoadRecipes>(_onLoadRecipes);
+    on<FilterRecipes>(_onFilterRecipes);
     on<CreateRecipe>(_onCreateRecipe);
     on<UpdateRecipe>(_onUpdateRecipe);
     on<DeleteRecipe>(_onDeleteRecipe);
@@ -28,13 +29,28 @@ class RecipesBloc extends Bloc<RecipesEvent, RecipesState> {
     }
   }
 
+  void _onFilterRecipes(
+    FilterRecipes event,
+    Emitter<RecipesState> emit,
+  ) {
+    if (state is RecipesLoaded) {
+      final current = state as RecipesLoaded;
+      emit(RecipesLoaded(
+        current.recipes,
+        searchQuery: event.query,
+        statusFilter: event.status,
+      ));
+    }
+  }
+
   Future<void> _onCreateRecipe(
     CreateRecipe event,
     Emitter<RecipesState> emit,
   ) async {
     try {
       await recipeRepository.saveRecipe(event.recipe);
-      add(const LoadRecipes());
+      final recipes = await recipeRepository.getAllRecipes();
+      emit(RecipesLoaded(recipes));
     } catch (e) {
       emit(RecipesError(e.toString()));
     }
@@ -46,7 +62,8 @@ class RecipesBloc extends Bloc<RecipesEvent, RecipesState> {
   ) async {
     try {
       await recipeRepository.saveRecipe(event.recipe);
-      add(const LoadRecipes());
+      final recipes = await recipeRepository.getAllRecipes();
+      emit(RecipesLoaded(recipes));
     } catch (e) {
       emit(RecipesError(e.toString()));
     }
@@ -58,7 +75,8 @@ class RecipesBloc extends Bloc<RecipesEvent, RecipesState> {
   ) async {
     try {
       await recipeRepository.deleteRecipe(event.id);
-      add(const LoadRecipes());
+      final recipes = await recipeRepository.getAllRecipes();
+      emit(RecipesLoaded(recipes));
     } catch (e) {
       emit(RecipesError(e.toString()));
     }

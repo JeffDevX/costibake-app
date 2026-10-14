@@ -41,4 +41,9 @@ class RecipeRepositoryImpl implements RecipeRepository {
   Future<void> updateRecipeStatus(String recipeId, String newStatus) async {
     await localDataSource.updateStatus(recipeId, newStatus);
   }
+
+  @override
+  Future<Map<String, List<String>>> getSubRecipeDependencyGraph() async {
+    return await localDataSource.getSubRecipeDependencyGraph();
+  }
 }

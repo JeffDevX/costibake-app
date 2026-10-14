@@ -5,6 +5,7 @@ class DatabaseTables {
   static const String tableReceta = 'RECETA';
   static const String tableRecetaInsumo = 'RECETA_INSUMO';
   static const String tableRecetaEmpaque = 'RECETA_EMPAQUE';
+  static const String tableRecetaSubreceta = 'RECETA_SUBRECETA';
   static const String tableConfiguracionNegocio = 'CONFIGURACION_NEGOCIO';
   static const String tableMatrizDensidad = 'MATRIZ_DENSIDAD';
 
@@ -62,9 +63,23 @@ class DatabaseTables {
       insumo_id TEXT NOT NULL,
       cantidad TEXT NOT NULL,
       unidad TEXT NOT NULL,
+      seccion TEXT NOT NULL DEFAULT 'Base',
       notas TEXT,
       FOREIGN KEY (receta_id) REFERENCES $tableReceta(id) ON DELETE CASCADE,
       FOREIGN KEY (insumo_id) REFERENCES $tableInsumo(id) ON DELETE RESTRICT
+    );
+  ''';
+
+  static const String createTableRecetaSubreceta = '''
+    CREATE TABLE IF NOT EXISTS $tableRecetaSubreceta (
+      id TEXT PRIMARY KEY NOT NULL,
+      receta_padre_id TEXT NOT NULL,
+      receta_hija_id TEXT NOT NULL,
+      cantidad_factor TEXT NOT NULL DEFAULT '1.0000',
+      seccion TEXT NOT NULL DEFAULT 'Componente',
+      notas TEXT,
+      FOREIGN KEY (receta_padre_id) REFERENCES $tableReceta(id) ON DELETE CASCADE,
+      FOREIGN KEY (receta_hija_id) REFERENCES $tableReceta(id) ON DELETE RESTRICT
     );
   ''';
 
@@ -114,6 +129,8 @@ class DatabaseTables {
     'CREATE INDEX IF NOT EXISTS idx_receta_insumo_insumo ON $tableRecetaInsumo(insumo_id);',
     'CREATE INDEX IF NOT EXISTS idx_receta_empaque_receta ON $tableRecetaEmpaque(receta_id);',
     'CREATE INDEX IF NOT EXISTS idx_receta_empaque_empaque ON $tableRecetaEmpaque(empaque_id);',
+    'CREATE INDEX IF NOT EXISTS idx_receta_subreceta_padre ON $tableRecetaSubreceta(receta_padre_id);',
+    'CREATE INDEX IF NOT EXISTS idx_receta_subreceta_hija ON $tableRecetaSubreceta(receta_hija_id);',
     'CREATE INDEX IF NOT EXISTS idx_matriz_densidad_clave ON $tableMatrizDensidad(nombre_clave);',
   ];
 }

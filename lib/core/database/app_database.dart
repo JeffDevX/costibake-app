@@ -13,8 +13,12 @@ class AppDatabase {
   static AppDatabase get instance => _instance ??= AppDatabase._();
 
   /// For testing: allows overriding the underlying database instance (e.g., in-memory test database)
-  static void setMockDatabase(Database mockDb) {
-    _instance = AppDatabase._().._db = mockDb;
+  static void setMockDatabase(Database? mockDb) {
+    if (mockDb == null) {
+      _instance = AppDatabase._();
+    } else {
+      _instance = AppDatabase._().._db = mockDb;
+    }
   }
 
   /// Get the active database instance, initializing it if necessary.
@@ -53,6 +57,7 @@ class AppDatabase {
     await db.execute(DatabaseTables.createTableEmpaque);
     await db.execute(DatabaseTables.createTableReceta);
     await db.execute(DatabaseTables.createTableRecetaInsumo);
+    await db.execute(DatabaseTables.createTableRecetaSubreceta);
     await db.execute(DatabaseTables.createTableRecetaEmpaque);
     await db.execute(DatabaseTables.createTableConfiguracionNegocio);
     await db.execute(DatabaseTables.createTableMatrizDensidad);

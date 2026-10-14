@@ -87,3 +87,21 @@ class InvalidUnitException implements Exception {
   String toString() => 'InvalidUnitException: $message (input: $rawUnit)';
 }
 
+/// Thrown when attempting to nest a sub-recipe into another recipe that would cause a cyclic dependency (BR-REC-05).
+class CircularRecipeDependencyException implements Exception {
+  final String parentRecipeId;
+  final String childRecipeId;
+  final String message;
+
+  const CircularRecipeDependencyException({
+    required this.parentRecipeId,
+    required this.childRecipeId,
+    this.message =
+        'Referencia circular detectada: una receta no puede incluirse a sí misma directa o indirectamente como sub-receta.',
+  });
+
+  @override
+  String toString() =>
+      'CircularRecipeDependencyException: $message ($parentRecipeId -> $childRecipeId)';
+}
+
