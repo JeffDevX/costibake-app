@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:costibake_app/core/constants/app_breakpoints.dart';
 import 'package:costibake_app/core/theme/app_colors.dart';
+import 'package:costibake_app/core/utils/precise_decimal.dart';
 import 'package:costibake_app/core/widgets/responsive_center.dart';
 import 'package:costibake_app/features/costing/domain/services/cost_calculator.dart';
+import 'package:costibake_app/features/costing/presentation/widgets/cost_distribution_widget.dart';
 import 'package:costibake_app/features/recipes/presentation/bloc/recipes_bloc.dart';
 import 'package:costibake_app/features/recipes/presentation/bloc/recipes_state.dart';
 import 'package:costibake_app/features/settings/presentation/bloc/settings_bloc.dart';
@@ -108,22 +110,31 @@ class CostingScreen extends StatelessWidget {
                                   ],
                                 ),
                                 const Divider(height: 24),
-                                // Quad Cost Elements Breakdown
-                                _buildCostRow('Insumos Directos:',
+                                // Quad Cost Elements Breakdown (JEF-15)
+                                _buildCostRow('Insumos Directos (CI):',
                                     breakdown.rawMaterialsCost.toCurrencyString(symbol: config.currencySymbol)),
-                                _buildCostRow('Empaques Directos:',
+                                if (breakdown.subRecipesCost > PreciseDecimal.zero)
+                                  _buildCostRow('Sub-recetas Modulares:',
+                                      breakdown.subRecipesCost.toCurrencyString(symbol: config.currencySymbol)),
+                                _buildCostRow('Empaques Directos (CE):',
                                     breakdown.packagingCost.toCurrencyString(symbol: config.currencySymbol)),
-                                _buildCostRow('Overhead (${config.overheadPercentage.toStringAsFixed(1)}%):',
+                                _buildCostRow('Overhead (${breakdown.effectiveOverheadPercentage.toStringAsFixed(1)}%):',
                                     breakdown.overheadCost.toCurrencyString(symbol: config.currencySymbol)),
-                                _buildCostRow('Mano de Obra (${recipe.prepTimeMinutes} min):',
+                                _buildCostRow('Mano de Obra (${recipe.prepTimeMinutes} min @ ${breakdown.effectiveLaborRatePerHour.toCurrencyString(symbol: config.currencySymbol)}/h):',
                                     breakdown.laborCost.toCurrencyString(symbol: config.currencySymbol)),
                                 const Divider(height: 16),
                                 _buildCostRow(
-                                  'Costo Total de Producción:',
+                                  'Costo Total de Producción (CTP):',
                                   breakdown.totalProductionCost.toCurrencyString(symbol: config.currencySymbol),
                                   isBold: true,
                                 ),
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 14),
+                                // Visual Distribution Progress Bar & Legend (JEF-15)
+                                CostDistributionWidget(
+                                  breakdown: breakdown,
+                                  currencySymbol: config.currencySymbol,
+                                ),
+                                const SizedBox(height: 14),
                                 // Dual Pricing Card (Lote vs Porcion)
                                 Container(
                                   padding: const EdgeInsets.all(12),

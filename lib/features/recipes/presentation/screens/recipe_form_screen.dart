@@ -14,6 +14,12 @@ import '../../../catalog/domain/entities/ingredient.dart';
 import '../../../catalog/domain/entities/packaging.dart';
 import '../../../catalog/domain/repositories/ingredient_repository.dart';
 import '../../../catalog/domain/repositories/packaging_repository.dart';
+import '../../../../features/costing/domain/entities/cost_breakdown.dart';
+import '../../../../features/costing/domain/services/costing_calculation_engine.dart';
+import '../../../../features/costing/presentation/widgets/cost_distribution_widget.dart';
+import '../../../../features/settings/domain/entities/business_config.dart';
+import '../../../../features/settings/presentation/bloc/settings_bloc.dart';
+import '../../../../features/settings/presentation/bloc/settings_state.dart';
 import '../../domain/entities/recipe.dart';
 import '../../domain/entities/recipe_item.dart';
 import '../../domain/repositories/recipe_repository.dart';
@@ -40,6 +46,11 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
   late TextEditingController _bakeTimeController;
   late TextEditingController _moldDimensionController;
   late TextEditingController _marginController;
+  late TextEditingController _laborRateController;
+  late TextEditingController _overheadController;
+
+  bool _useCustomLaborRate = false;
+  bool _useCustomOverhead = false;
 
   String? _selectedMoldType;
   String _selectedStatus = AppConstants.recipeStatusActive;
@@ -80,7 +91,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
 
     final recipe = widget.recipeToEdit;
     _nameController = TextEditingController(text: recipe?.name ?? '');
@@ -101,6 +112,22 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
           ? recipe.targetProfitMargin.toStringAsFixed(2)
           : AppConstants.defaultTargetProfitMargin.toStringAsFixed(2),
     );
+
+    _useCustomLaborRate = recipe?.laborHourlyRateOverride != null;
+    _laborRateController = TextEditingController(
+      text: recipe?.laborHourlyRateOverride != null
+          ? recipe!.laborHourlyRateOverride!.toStringAsFixed(2)
+          : '',
+    );
+    _laborRateController.addListener(() => setState(() {}));
+
+    _useCustomOverhead = recipe?.overheadPercentageOverride != null;
+    _overheadController = TextEditingController(
+      text: recipe?.overheadPercentageOverride != null
+          ? recipe!.overheadPercentageOverride!.toStringAsFixed(2)
+          : '',
+    );
+    _overheadController.addListener(() => setState(() {}));
 
     _selectedMoldType = recipe?.moldType ?? _moldTypes.first;
     _selectedStatus = recipe?.status ?? AppConstants.recipeStatusActive;
@@ -124,6 +151,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
     _bakeTimeController.dispose();
     _moldDimensionController.dispose();
     _marginController.dispose();
+    _laborRateController.dispose();
+    _overheadController.dispose();
     super.dispose();
   }
 
@@ -176,17 +205,6 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
     return total;
   }
 
-  PreciseDecimal get _totalDirectCost =>
-      _totalIngredientsCost + _totalSubRecipesCost + _totalPackagingCost;
-
-  int get _parsedYield => int.tryParse(_yieldController.text.trim()) ?? 1;
-
-  PreciseDecimal get _costPerPortion {
-    final y = _parsedYield;
-    if (y <= 0) return _totalDirectCost;
-    return _totalDirectCost / PreciseDecimal.fromInt(y);
-  }
-
   Set<String> get _currentSections {
     final set = <String>{..._defaultSections};
     for (final ing in _ingredients) {
@@ -196,6 +214,81 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
       set.add(sub.section);
     }
     return set;
+  }
+
+  BusinessConfig get _effectiveBusinessConfig {
+    try {
+      final state = context.read<SettingsBloc>().state;
+      if (state is SettingsLoaded) {
+        return state.config;
+      }
+    } catch (_) {}
+    return BusinessConfig(
+      id: 'default',
+      businessName: 'CostiBake',
+      currencySymbol: AppConstants.defaultCurrencySymbol,
+      laborHourlyRate:
+          PreciseDecimal.fromDouble(AppConstants.defaultLaborRatePerHour),
+      overheadPercentage:
+          PreciseDecimal.fromDouble(AppConstants.defaultOverheadPercentage),
+      updatedAt: DateTime.now(),
+    );
+  }
+
+  CostBreakdown get _currentBreakdown {
+    final config = _effectiveBusinessConfig;
+
+    final laborOverride = _useCustomLaborRate &&
+            _laborRateController.text.trim().isNotEmpty
+        ? PreciseDecimal.tryParse(_laborRateController.text.trim())
+        : null;
+
+    final overheadOverride = _useCustomOverhead &&
+            _overheadController.text.trim().isNotEmpty
+        ? PreciseDecimal.tryParse(_overheadController.text.trim())
+        : null;
+
+    final prepMinutes = int.tryParse(_prepTimeController.text.trim()) ?? 0;
+    final yieldVal = int.tryParse(_yieldController.text.trim()) ?? 1;
+    final margin = PreciseDecimal.tryParse(_marginController.text.trim()) ??
+        PreciseDecimal.fromDouble(AppConstants.defaultTargetProfitMargin);
+
+    final recipeId = widget.recipeToEdit?.id ?? 'temp_costing';
+
+    final tempRecipe = Recipe(
+      id: recipeId,
+      name: _nameController.text.trim(),
+      description: _descController.text.trim().isEmpty
+          ? null
+          : _descController.text.trim(),
+      yieldPortions: yieldVal > 0 ? yieldVal : 1,
+      prepTimeMinutes: prepMinutes >= 0 ? prepMinutes : 0,
+      bakeTimeMinutes: int.tryParse(_bakeTimeController.text.trim()) ?? 0,
+      targetProfitMargin:
+          margin >= PreciseDecimal.zero ? margin : PreciseDecimal.zero,
+      status: _selectedStatus,
+      createdAt: widget.recipeToEdit?.createdAt ?? DateTime.now(),
+      updatedAt: DateTime.now(),
+      laborHourlyRateOverride: laborOverride,
+      overheadPercentageOverride: overheadOverride,
+      ingredients: _ingredients,
+      subRecipes: _subRecipes,
+      packaging: _packaging,
+    );
+
+    try {
+      return CostingCalculationEngine.calculate(
+        recipe: tempRecipe,
+        config: config,
+        laborHourlyRateOverride: laborOverride,
+        overheadPercentageOverride: overheadOverride,
+        targetProfitMarginOverride: margin,
+        yieldPortionsOverride: yieldVal > 0 ? yieldVal : 1,
+        prepTimeMinutesOverride: prepMinutes >= 0 ? prepMinutes : 0,
+      );
+    } catch (_) {
+      return CostBreakdown.empty();
+    }
   }
 
   void _saveRecipe() {
@@ -229,6 +322,16 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
         PreciseDecimal.tryParse(_marginController.text.trim()) ??
             PreciseDecimal.fromDouble(AppConstants.defaultTargetProfitMargin);
 
+    final laborOverride = _useCustomLaborRate &&
+            _laborRateController.text.trim().isNotEmpty
+        ? PreciseDecimal.tryParse(_laborRateController.text.trim())
+        : null;
+
+    final overheadOverride = _useCustomOverhead &&
+            _overheadController.text.trim().isNotEmpty
+        ? PreciseDecimal.tryParse(_overheadController.text.trim())
+        : null;
+
     final now = DateTime.now();
     final recipeId = widget.recipeToEdit?.id ?? const Uuid().v4();
 
@@ -246,6 +349,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
           ? null
           : _moldDimensionController.text.trim(),
       targetProfitMargin: marginValue,
+      laborHourlyRateOverride: laborOverride,
+      overheadPercentageOverride: overheadOverride,
       status: _selectedStatus,
       createdAt: widget.recipeToEdit?.createdAt ?? now,
       updatedAt: now,
@@ -813,6 +918,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
             Tab(icon: Icon(Icons.info_outline), text: 'General'),
             Tab(icon: Icon(Icons.pie_chart_outline), text: 'Ingredientes'),
             Tab(icon: Icon(Icons.inventory_2_outlined), text: 'Empaques'),
+            Tab(icon: Icon(Icons.calculate_outlined), text: 'Costeo'),
           ],
         ),
       ),
@@ -832,7 +938,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Costo Directo',
+                      'Costo Integral (CTP)',
                       style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -841,7 +947,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        '\$${_totalDirectCost.toStringAsFixed(2)}',
+                        '${_effectiveBusinessConfig.currencySymbol}${_currentBreakdown.totalProductionCost.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -853,7 +959,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        '\$${_costPerPortion.toStringAsFixed(2)} / porción',
+                        '${_effectiveBusinessConfig.currencySymbol}${_currentBreakdown.costPerPortion.toStringAsFixed(2)} / porción',
                         style: const TextStyle(
                           fontSize: 11,
                           color: AppColors.primaryDarkCaramel,
@@ -903,6 +1009,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                   _buildGeneralTab(),
                   _buildIngredientsTab(),
                   _buildPackagingTab(),
+                  _buildCostingTab(),
                 ],
               ),
             ),
@@ -1534,6 +1641,393 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCostingTab() {
+    final breakdown = _currentBreakdown;
+    final config = _effectiveBusinessConfig;
+
+    return ResponsiveCenter(
+      maxWidth: AppBreakpoints.maxContentWidth,
+      child: ListView(
+        key: const Key('recipe_form_costing_tab_list'),
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Visual Cost Distribution (Progress bar & legend)
+          CostDistributionWidget(
+            key: const Key('cost_distribution_widget'),
+            breakdown: breakdown,
+            currencySymbol: config.currencySymbol,
+          ),
+          const SizedBox(height: 16),
+
+          // Overrides Card
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Parámetros Financieros y Sobrescrituras',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textEspresso,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Personaliza la mano de obra o costos indirectos para esta receta en particular (RF-SYS-15, RF-SYS-16).',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
+                  const Divider(height: 24),
+
+                  // Switch Labor Rate
+                  SwitchListTile(
+                    key: const Key('switch_custom_labor_rate'),
+                    contentPadding: EdgeInsets.zero,
+                    activeThumbColor: AppColors.primaryCaramel,
+                    title: const Text(
+                      'Sobrescribir Tarifa de Mano de Obra',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      'Tarifa global: ${config.currencySymbol}${config.laborHourlyRate.toStringAsFixed(2)}/h',
+                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    ),
+                    value: _useCustomLaborRate,
+                    onChanged: (val) {
+                      setState(() {
+                        _useCustomLaborRate = val;
+                        if (val && _laborRateController.text.trim().isEmpty) {
+                          _laborRateController.text =
+                              config.laborHourlyRate.toStringAsFixed(2);
+                        }
+                      });
+                    },
+                  ),
+                  if (_useCustomLaborRate) ...[
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      key: const Key('field_labor_rate_override'),
+                      controller: _laborRateController,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        labelText:
+                            'Tarifa Horaria Específica (${config.currencySymbol}/hora)',
+                        prefixIcon: const Icon(Icons.badge_outlined),
+                        hintText: 'Ej: 15.00',
+                      ),
+                      validator: (val) {
+                        if (_useCustomLaborRate) {
+                          final v = PreciseDecimal.tryParse(val?.trim());
+                          if (v == null || v < PreciseDecimal.zero) {
+                            return 'Ingrese una tarifa válida >= 0';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Switch Overhead
+                  SwitchListTile(
+                    key: const Key('switch_custom_overhead'),
+                    contentPadding: EdgeInsets.zero,
+                    activeThumbColor: AppColors.primaryCaramel,
+                    title: const Text(
+                      'Sobrescribir % de Overhead',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      'Overhead global: ${config.overheadPercentage.toStringAsFixed(1)}%',
+                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    ),
+                    value: _useCustomOverhead,
+                    onChanged: (val) {
+                      setState(() {
+                        _useCustomOverhead = val;
+                        if (val && _overheadController.text.trim().isEmpty) {
+                          _overheadController.text =
+                              config.overheadPercentage.toStringAsFixed(1);
+                        }
+                      });
+                    },
+                  ),
+                  if (_useCustomOverhead) ...[
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      key: const Key('field_overhead_override'),
+                      controller: _overheadController,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Porcentaje Overhead Específico (%)',
+                        prefixIcon: Icon(Icons.percent),
+                        hintText: 'Ej: 20.0',
+                      ),
+                      validator: (val) {
+                        if (_useCustomOverhead) {
+                          final v = PreciseDecimal.tryParse(val?.trim());
+                          if (v == null ||
+                              v < PreciseDecimal.zero ||
+                              v > PreciseDecimal.fromInt(100)) {
+                            return 'Ingrese un porcentaje entre 0 y 100';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Quadruple Cost Elements Breakdown
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Desglose Cuádruple de Costos (CTP)',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textEspresso,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildCostRow(
+                    'Insumos Directos (CI):',
+                    breakdown.rawMaterialsCost
+                        .toCurrencyString(symbol: config.currencySymbol),
+                  ),
+                  if (breakdown.subRecipesCost > PreciseDecimal.zero)
+                    _buildCostRow(
+                      'Sub-recetas Modulares:',
+                      breakdown.subRecipesCost
+                          .toCurrencyString(symbol: config.currencySymbol),
+                    ),
+                  _buildCostRow(
+                    'Empaques y Descartables (CE):',
+                    breakdown.packagingCost
+                        .toCurrencyString(symbol: config.currencySymbol),
+                  ),
+                  _buildCostRow(
+                    'Mano de Obra (CMO - ${breakdown.prepTimeMinutes} min @ ${breakdown.effectiveLaborRatePerHour.toCurrencyString(symbol: config.currencySymbol)}/h):',
+                    breakdown.laborCost
+                        .toCurrencyString(symbol: config.currencySymbol),
+                  ),
+                  _buildCostRow(
+                    'Overhead (COH - ${breakdown.effectiveOverheadPercentage.toStringAsFixed(1)}%):',
+                    breakdown.overheadCost
+                        .toCurrencyString(symbol: config.currencySymbol),
+                  ),
+                  const Divider(height: 20),
+                  _buildCostRow(
+                    'Costo Total de Producción (CTP):',
+                    breakdown.totalProductionCost
+                        .toCurrencyString(symbol: config.currencySymbol),
+                    isBold: true,
+                  ),
+                  _buildCostRow(
+                    'Costo Unitario por Porción (${breakdown.yieldPortions} pzas):',
+                    breakdown.costPerPortion
+                        .toCurrencyString(symbol: config.currencySymbol),
+                    isBold: true,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Profitability & Dual Suggested Pricing Card
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Sugerencia de Precios y Ganancia',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textEspresso,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.profitGreenLight,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '+${_marginController.text.trim()}% Markup',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.profitGreen,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceHighlight,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'LOTE COMPLETO',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  breakdown.suggestedBatchPrice
+                                      .toCurrencyString(symbol: config.currencySymbol),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primaryCaramel,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Ganancia: +${breakdown.netProfitBatch.toCurrencyString(symbol: config.currencySymbol)}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.profitGreen,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 48,
+                          color: AppColors.borderWarm,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'PORCIÓN (${breakdown.yieldPortions} PZAS)',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  breakdown.suggestedPortionPrice
+                                      .toCurrencyString(symbol: config.currencySymbol),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.profitGreen,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Ganancia: +${breakdown.netProfitPortion.toCurrencyString(symbol: config.currencySymbol)}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.profitGreen,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCostRow(String title, String value, {bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                color: isBold ? AppColors.textEspresso : AppColors.textMuted,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            value,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+              color: AppColors.textEspresso,
             ),
           ),
         ],

@@ -105,3 +105,18 @@ class CircularRecipeDependencyException implements Exception {
       'CircularRecipeDependencyException: $message ($parentRecipeId -> $childRecipeId)';
 }
 
+/// Thrown when any cost component is negative (BR-CST-01).
+class NegativeCostComponentException implements Exception {
+  final String componentName;
+  final String message;
+
+  const NegativeCostComponentException(
+    this.componentName, [
+    this.message = 'Ningún componente de costo puede ser negativo (BR-CST-01).',
+  ]);
+
+  @override
+  String toString() =>
+      'NegativeCostComponentException: $message ($componentName)';
+}
+

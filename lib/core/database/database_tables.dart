@@ -49,6 +49,8 @@ class DatabaseTables {
       tiempo_horneado_minutos INTEGER NOT NULL DEFAULT 0,
       tamano_molde_tipo TEXT,
       tamano_molde_dimension TEXT,
+      tarifa_mano_obra_hora TEXT,
+      porcentaje_overhead TEXT,
       margen_ganancia_porcentaje TEXT NOT NULL DEFAULT '40.0000',
       estado TEXT NOT NULL DEFAULT 'ACTIVA',
       fecha_creacion TEXT NOT NULL,

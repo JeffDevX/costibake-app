@@ -65,6 +65,18 @@ class AppDatabase {
     for (final indexSql in DatabaseTables.createIndexes) {
       await db.execute(indexSql);
     }
+
+    try {
+      await db.execute(
+        'ALTER TABLE ${DatabaseTables.tableReceta} ADD COLUMN tarifa_mano_obra_hora TEXT;',
+      );
+    } catch (_) {}
+
+    try {
+      await db.execute(
+        'ALTER TABLE ${DatabaseTables.tableReceta} ADD COLUMN porcentaje_overhead TEXT;',
+      );
+    } catch (_) {}
   }
 
   static Future<void> _insertDefaultConfiguration(DatabaseExecutor db) async {
