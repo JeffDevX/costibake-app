@@ -39,6 +39,7 @@ void main() {
       await db.execute(DatabaseTables.createTableEmpaque);
       await db.execute(DatabaseTables.createTableReceta);
       await db.execute(DatabaseTables.createTableRecetaInsumo);
+      await db.execute(DatabaseTables.createTableRecetaSubreceta);
       await db.execute(DatabaseTables.createTableRecetaEmpaque);
       await db.execute(DatabaseTables.createTableConfiguracionNegocio);
       await db.execute(DatabaseTables.createTableMatrizDensidad);

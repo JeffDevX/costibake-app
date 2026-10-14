@@ -18,11 +18,30 @@ class RecipesLoading extends RecipesState {
 
 class RecipesLoaded extends RecipesState {
   final List<Recipe> recipes;
+  final String searchQuery;
+  final String? statusFilter;
 
-  const RecipesLoaded(this.recipes);
+  const RecipesLoaded(
+    this.recipes, {
+    this.searchQuery = '',
+    this.statusFilter,
+  });
+
+  List<Recipe> get filteredRecipes {
+    return recipes.where((r) {
+      final matchesQuery = searchQuery.isEmpty ||
+          r.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+          (r.description?.toLowerCase().contains(searchQuery.toLowerCase()) ??
+              false);
+      final matchesStatus = statusFilter == null ||
+          statusFilter!.isEmpty ||
+          r.status == statusFilter;
+      return matchesQuery && matchesStatus;
+    }).toList();
+  }
 
   @override
-  List<Object?> get props => [recipes];
+  List<Object?> get props => [recipes, searchQuery, statusFilter];
 }
 
 class RecipesError extends RecipesState {

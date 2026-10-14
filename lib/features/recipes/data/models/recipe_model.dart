@@ -17,6 +17,7 @@ class RecipeModel extends Recipe {
     required super.createdAt,
     required super.updatedAt,
     super.ingredients = const [],
+    super.subRecipes = const [],
     super.packaging = const [],
   });
 
@@ -35,6 +36,7 @@ class RecipeModel extends Recipe {
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       ingredients: entity.ingredients,
+      subRecipes: entity.subRecipes,
       packaging: entity.packaging,
     );
   }
@@ -42,6 +44,7 @@ class RecipeModel extends Recipe {
   factory RecipeModel.fromMap(
     Map<String, dynamic> map, {
     List<RecipeIngredientItem> ingredients = const [],
+    List<RecipeSubRecipeItem> subRecipes = const [],
     List<RecipePackagingItem> packaging = const [],
   }) {
     return RecipeModel(
@@ -59,6 +62,7 @@ class RecipeModel extends Recipe {
       createdAt: DateTime.parse(map['fecha_creacion'] as String),
       updatedAt: DateTime.parse(map['fecha_actualizacion'] as String),
       ingredients: ingredients,
+      subRecipes: subRecipes,
       packaging: packaging,
     );
   }

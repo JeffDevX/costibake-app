@@ -36,6 +36,18 @@ class PreciseDecimal extends Equatable implements Comparable<PreciseDecimal> {
     return PreciseDecimal._(parsedBigInt);
   }
 
+  /// Tries to parse a string representation. Returns null if invalid or null/empty.
+  static PreciseDecimal? tryParse(String? value) {
+    if (value == null) return null;
+    final cleaned = value.trim();
+    if (cleaned.isEmpty) return null;
+    try {
+      return PreciseDecimal.fromString(cleaned);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Creates a PreciseDecimal from an integer.
   factory PreciseDecimal.fromInt(int value) {
     return PreciseDecimal._(BigInt.from(value) * _scaleMultiplier);
