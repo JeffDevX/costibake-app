@@ -5,6 +5,8 @@ import '../../../../core/constants/app_breakpoints.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/precise_decimal.dart';
 import '../../../../core/widgets/responsive_center.dart';
+import '../../../recipes/presentation/bloc/recipes_bloc.dart';
+import '../../../recipes/presentation/bloc/recipes_event.dart';
 import '../../domain/entities/packaging.dart';
 import '../bloc/catalog_bloc.dart';
 import '../bloc/catalog_event.dart';
@@ -133,20 +135,20 @@ class _PackagingFormScreenState extends State<PackagingFormScreen> {
 
     if (isEditing) {
       context.read<CatalogBloc>().add(UpdatePackaging(packagingToSave));
+      try {
+        context.read<RecipesBloc>().add(const LoadRecipes());
+      } catch (_) {}
     } else {
       context.read<CatalogBloc>().add(AddPackaging(packagingToSave));
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isEditing
-              ? 'Empaque "$name" actualizado exitosamente (${unitCost.toCurrencyString()}/u)'
-              : 'Empaque "$name" registrado exitosamente (${unitCost.toCurrencyString()}/u)',
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Empaque "$name" registrado exitosamente (${unitCost.toCurrencyString()}/u)',
+          ),
+          backgroundColor: AppColors.profitGreen,
         ),
-        backgroundColor: AppColors.profitGreen,
-      ),
-    );
+      );
+    }
 
     Navigator.pop(context);
   }

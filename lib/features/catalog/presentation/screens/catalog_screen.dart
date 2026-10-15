@@ -100,7 +100,18 @@ class _CatalogScreenState extends State<CatalogScreen>
           ],
         ),
       ),
-      body: BlocBuilder<CatalogBloc, CatalogState>(
+      body: BlocConsumer<CatalogBloc, CatalogState>(
+        listener: (context, state) {
+          if (state is CatalogLoaded && state.lastCascadeResult != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.lastCascadeResult!.userNotificationMessage),
+                backgroundColor: AppColors.profitGreen,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        },
         builder: (context, state) {
           if (state is CatalogLoading || state is CatalogInitial) {
             return const Center(child: CircularProgressIndicator());

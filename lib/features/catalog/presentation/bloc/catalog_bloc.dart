@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../costing/data/services/cascade_recalculation_service.dart';
 import '../../domain/repositories/ingredient_repository.dart';
 import '../../domain/repositories/packaging_repository.dart';
 import 'catalog_event.dart';
@@ -7,11 +8,15 @@ import 'catalog_state.dart';
 class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
   final IngredientRepository ingredientRepository;
   final PackagingRepository packagingRepository;
+  final CascadeRecalculationService cascadeRecalculationService;
 
   CatalogBloc({
     required this.ingredientRepository,
     required this.packagingRepository,
-  }) : super(const CatalogInitial()) {
+    CascadeRecalculationService? cascadeRecalculationService,
+  })  : cascadeRecalculationService =
+            cascadeRecalculationService ?? CascadeRecalculationService(),
+        super(const CatalogInitial()) {
     on<LoadCatalog>(_onLoadCatalog);
     on<AddIngredient>(_onAddIngredient);
     on<UpdateIngredient>(_onUpdateIngredient);
@@ -85,8 +90,28 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
     Emitter<CatalogState> emit,
   ) async {
     try {
-      await ingredientRepository.saveIngredient(event.ingredient);
-      add(const LoadCatalog());
+      final cascadeResult = await cascadeRecalculationService
+          .recalculateForIngredient(ingredient: event.ingredient);
+
+      final ingredients = await ingredientRepository.getAllIngredients();
+      final packagings = await packagingRepository.getAllPackaging();
+      String currentQuery = '';
+      String? currentIngCat;
+      String? currentPackCat;
+      if (state is CatalogLoaded) {
+        final current = state as CatalogLoaded;
+        currentQuery = current.searchQuery;
+        currentIngCat = current.ingredientCategory;
+        currentPackCat = current.packagingCategory;
+      }
+      emit(CatalogLoaded(
+        ingredients: ingredients,
+        packagings: packagings,
+        searchQuery: currentQuery,
+        ingredientCategory: currentIngCat,
+        packagingCategory: currentPackCat,
+        lastCascadeResult: cascadeResult,
+      ));
     } catch (e) {
       emit(CatalogError(e.toString()));
     }
@@ -121,8 +146,28 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
     Emitter<CatalogState> emit,
   ) async {
     try {
-      await packagingRepository.savePackaging(event.packaging);
-      add(const LoadCatalog());
+      final cascadeResult = await cascadeRecalculationService
+          .recalculateForPackaging(packaging: event.packaging);
+
+      final ingredients = await ingredientRepository.getAllIngredients();
+      final packagings = await packagingRepository.getAllPackaging();
+      String currentQuery = '';
+      String? currentIngCat;
+      String? currentPackCat;
+      if (state is CatalogLoaded) {
+        final current = state as CatalogLoaded;
+        currentQuery = current.searchQuery;
+        currentIngCat = current.ingredientCategory;
+        currentPackCat = current.packagingCategory;
+      }
+      emit(CatalogLoaded(
+        ingredients: ingredients,
+        packagings: packagings,
+        searchQuery: currentQuery,
+        ingredientCategory: currentIngCat,
+        packagingCategory: currentPackCat,
+        lastCascadeResult: cascadeResult,
+      ));
     } catch (e) {
       emit(CatalogError(e.toString()));
     }
