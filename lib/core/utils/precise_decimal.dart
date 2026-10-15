@@ -109,6 +109,22 @@ class PreciseDecimal extends Equatable implements Comparable<PreciseDecimal> {
   /// Returns the double value (intended only for visualization / charts, not calculations).
   double toDouble() => _scaledValue.toDouble() / 1000000.0;
 
+  /// Rounds this decimal up to the nearest multiple of [step] (e.g. 0.10, 0.50, 1.00) (RF-SYS-20).
+  PreciseDecimal ceilToMultiple(PreciseDecimal step) {
+    if (step._scaledValue <= BigInt.zero) return this;
+    if (_scaledValue <= BigInt.zero) return this;
+
+    final remainder = _scaledValue % step._scaledValue;
+    if (remainder == BigInt.zero) return this;
+
+    final quotient = _scaledValue ~/ step._scaledValue;
+    final ceiledScaled = (quotient + BigInt.one) * step._scaledValue;
+    return PreciseDecimal._(ceiledScaled);
+  }
+
+  /// Rounds this decimal up to the nearest integer.
+  PreciseDecimal ceil() => ceilToMultiple(PreciseDecimal.one);
+
   /// Formats the number with a specific number of decimal places (e.g., 2 for currency, 4 for unit cost).
   String toStringAsFixed(int fractionDigits) {
     assert(fractionDigits >= 0 && fractionDigits <= internalScale);

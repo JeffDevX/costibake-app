@@ -1,4 +1,5 @@
 import '../../../../core/utils/precise_decimal.dart';
+import '../../../costing/domain/entities/pricing_strategy.dart';
 import '../../domain/entities/recipe.dart';
 import '../../domain/entities/recipe_item.dart';
 
@@ -15,6 +16,10 @@ class RecipeModel extends Recipe {
     super.laborHourlyRateOverride,
     super.overheadPercentageOverride,
     required super.targetProfitMargin,
+    super.pricingMode = PricingMode.markupOnCost,
+    super.roundingRule = RoundingRule.none,
+    super.customBatchPrice,
+    super.customPortionPrice,
     required super.status,
     required super.createdAt,
     required super.updatedAt,
@@ -36,6 +41,10 @@ class RecipeModel extends Recipe {
       laborHourlyRateOverride: entity.laborHourlyRateOverride,
       overheadPercentageOverride: entity.overheadPercentageOverride,
       targetProfitMargin: entity.targetProfitMargin,
+      pricingMode: entity.pricingMode,
+      roundingRule: entity.roundingRule,
+      customBatchPrice: entity.customBatchPrice,
+      customPortionPrice: entity.customPortionPrice,
       status: entity.status,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
@@ -68,6 +77,16 @@ class RecipeModel extends Recipe {
           : null,
       targetProfitMargin:
           PreciseDecimal.fromString(map['margen_ganancia_porcentaje'] as String),
+      pricingMode:
+          PricingMode.fromString(map['modo_fijacion_precio'] as String?),
+      roundingRule:
+          RoundingRule.fromString(map['regla_redondeo'] as String?),
+      customBatchPrice: map['precio_venta_manual_lote'] != null
+          ? PreciseDecimal.tryParse(map['precio_venta_manual_lote'] as String)
+          : null,
+      customPortionPrice: map['precio_venta_manual_porcion'] != null
+          ? PreciseDecimal.tryParse(map['precio_venta_manual_porcion'] as String)
+          : null,
       status: map['estado'] as String,
       createdAt: DateTime.parse(map['fecha_creacion'] as String),
       updatedAt: DateTime.parse(map['fecha_actualizacion'] as String),
@@ -90,6 +109,10 @@ class RecipeModel extends Recipe {
       'tarifa_mano_obra_hora': laborHourlyRateOverride?.toStringAsFixed(4),
       'porcentaje_overhead': overheadPercentageOverride?.toStringAsFixed(4),
       'margen_ganancia_porcentaje': targetProfitMargin.toStringAsFixed(4),
+      'modo_fijacion_precio': pricingMode.toDbString(),
+      'regla_redondeo': roundingRule.toDbString(),
+      'precio_venta_manual_lote': customBatchPrice?.toStringAsFixed(4),
+      'precio_venta_manual_porcion': customPortionPrice?.toStringAsFixed(4),
       'estado': status,
       'fecha_creacion': createdAt.toIso8601String(),
       'fecha_actualizacion': updatedAt.toIso8601String(),

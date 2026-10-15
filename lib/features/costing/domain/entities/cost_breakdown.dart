@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../../core/utils/precise_decimal.dart';
+import 'dual_pricing_breakdown.dart';
 
 /// Consolidated financial and cost breakdown for a bakery recipe (JEF-15, RF-SYS-17).
 class CostBreakdown extends Equatable {
@@ -51,6 +52,9 @@ class CostBreakdown extends Equatable {
   /// Net profit portion = suggestedPortionPrice - costPerPortion
   final PreciseDecimal netProfitPortion;
 
+  /// Full dual pricing strategy breakdown (JEF-16, RF-SYS-18..20)
+  final DualPricingBreakdown? pricing;
+
   const CostBreakdown({
     required this.rawMaterialsCost,
     required this.subRecipesCost,
@@ -68,6 +72,7 @@ class CostBreakdown extends Equatable {
     required this.suggestedPortionPrice,
     required this.netProfitBatch,
     required this.netProfitPortion,
+    this.pricing,
   });
 
   /// Factory producing an empty/zero breakdown for initialization or fallback.
@@ -89,6 +94,7 @@ class CostBreakdown extends Equatable {
       suggestedPortionPrice: PreciseDecimal.zero,
       netProfitBatch: PreciseDecimal.zero,
       netProfitPortion: PreciseDecimal.zero,
+      pricing: null,
     );
   }
 
@@ -135,5 +141,6 @@ class CostBreakdown extends Equatable {
         suggestedPortionPrice,
         netProfitBatch,
         netProfitPortion,
+        pricing,
       ];
 }
