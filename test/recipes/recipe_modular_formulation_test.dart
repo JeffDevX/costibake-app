@@ -560,4 +560,13 @@ class FakeRecipeRepository implements RecipeRepository {
 
   @override
   Future<Map<String, List<String>>> getSubRecipeDependencyGraph() async => {};
+
+  @override
+  Future<Map<String, List<String>>> getRecipeIngredientGraph() async => {};
+
+  @override
+  Future<Map<String, List<String>>> getRecipePackagingGraph() async => {};
+
+  @override
+  Future<void> updateRecipeTimestamps(List<String> recipeIds, DateTime timestamp) async {}
 }

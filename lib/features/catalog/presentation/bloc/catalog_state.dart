@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../../core/utils/text_search_utils.dart';
+import '../../../costing/domain/entities/cascade_recalculation_result.dart';
 import '../../domain/entities/ingredient.dart';
 import '../../domain/entities/packaging.dart';
 
@@ -24,6 +25,7 @@ class CatalogLoaded extends CatalogState {
   final String searchQuery;
   final String? ingredientCategory;
   final String? packagingCategory;
+  final CascadeRecalculationResult? lastCascadeResult;
 
   const CatalogLoaded({
     required List<Ingredient> ingredients,
@@ -31,6 +33,7 @@ class CatalogLoaded extends CatalogState {
     this.searchQuery = '',
     this.ingredientCategory,
     this.packagingCategory,
+    this.lastCascadeResult,
   })  : allIngredients = ingredients,
         allPackagings = packagings;
 
@@ -83,6 +86,7 @@ class CatalogLoaded extends CatalogState {
         searchQuery,
         ingredientCategory,
         packagingCategory,
+        lastCascadeResult,
       ];
 
   CatalogLoaded copyWith({
@@ -91,8 +95,10 @@ class CatalogLoaded extends CatalogState {
     String? searchQuery,
     String? ingredientCategory,
     String? packagingCategory,
+    CascadeRecalculationResult? lastCascadeResult,
     bool clearIngredientCategory = false,
     bool clearPackagingCategory = false,
+    bool clearCascadeResult = false,
   }) {
     return CatalogLoaded(
       ingredients: ingredients ?? allIngredients,
@@ -104,6 +110,9 @@ class CatalogLoaded extends CatalogState {
       packagingCategory: clearPackagingCategory
           ? null
           : (packagingCategory ?? this.packagingCategory),
+      lastCascadeResult: clearCascadeResult
+          ? null
+          : (lastCascadeResult ?? this.lastCascadeResult),
     );
   }
 }

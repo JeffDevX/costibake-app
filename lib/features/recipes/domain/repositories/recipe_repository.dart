@@ -11,4 +11,13 @@ abstract class RecipeRepository {
   /// Returns the current dependency graph (parent recipe ID -> list of child recipe IDs)
   /// used for cycle detection (BR-REC-05).
   Future<Map<String, List<String>>> getSubRecipeDependencyGraph();
+
+  /// Returns map of recipe ID -> list of ingredient IDs (BR-PRC-02).
+  Future<Map<String, List<String>>> getRecipeIngredientGraph();
+
+  /// Returns map of recipe ID -> list of packaging IDs.
+  Future<Map<String, List<String>>> getRecipePackagingGraph();
+
+  /// Updates the updatedAt timestamp for a list of recipes in batch (BR-PRC-03).
+  Future<void> updateRecipeTimestamps(List<String> recipeIds, DateTime timestamp);
 }

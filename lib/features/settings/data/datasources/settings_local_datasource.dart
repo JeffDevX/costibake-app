@@ -6,8 +6,8 @@ import '../../../../core/utils/precise_decimal.dart';
 import '../models/business_config_model.dart';
 
 abstract class SettingsLocalDataSource {
-  Future<BusinessConfigModel> getBusinessConfig();
-  Future<void> saveBusinessConfig(BusinessConfigModel config);
+  Future<BusinessConfigModel> getBusinessConfig({DatabaseExecutor? executor});
+  Future<void> saveBusinessConfig(BusinessConfigModel config, {DatabaseExecutor? executor});
 }
 
 class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
@@ -17,8 +17,8 @@ class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
       : appDatabase = database ?? AppDatabase.instance;
 
   @override
-  Future<BusinessConfigModel> getBusinessConfig() async {
-    final db = await appDatabase.database;
+  Future<BusinessConfigModel> getBusinessConfig({DatabaseExecutor? executor}) async {
+    final db = executor ?? await appDatabase.database;
     final results = await db.query(
       DatabaseTables.tableConfiguracionNegocio,
       limit: 1,
@@ -43,8 +43,8 @@ class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
   }
 
   @override
-  Future<void> saveBusinessConfig(BusinessConfigModel config) async {
-    final db = await appDatabase.database;
+  Future<void> saveBusinessConfig(BusinessConfigModel config, {DatabaseExecutor? executor}) async {
+    final db = executor ?? await appDatabase.database;
     await db.insert(
       DatabaseTables.tableConfiguracionNegocio,
       config.toMap(),

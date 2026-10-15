@@ -6,13 +6,17 @@ import '../models/recipe_item_model.dart';
 import '../models/recipe_model.dart';
 
 abstract class RecipeLocalDataSource {
-  Future<List<RecipeModel>> getAll();
-  Future<RecipeModel?> getById(String id);
+  Future<List<RecipeModel>> getAll({DatabaseExecutor? executor});
+  Future<RecipeModel?> getById(String id, {DatabaseExecutor? executor});
+  Future<Map<String, RecipeModel>> getByIds(List<String> ids, {DatabaseExecutor? executor});
   Future<List<RecipeModel>> search(String query, {String? status});
   Future<void> save(RecipeModel model);
   Future<void> delete(String id);
   Future<void> updateStatus(String recipeId, String newStatus);
-  Future<Map<String, List<String>>> getSubRecipeDependencyGraph();
+  Future<Map<String, List<String>>> getSubRecipeDependencyGraph({DatabaseExecutor? executor});
+  Future<Map<String, List<String>>> getRecipeIngredientGraph({DatabaseExecutor? executor});
+  Future<Map<String, List<String>>> getRecipePackagingGraph({DatabaseExecutor? executor});
+  Future<void> updateTimestamps(List<String> recipeIds, DateTime timestamp, {DatabaseExecutor? executor});
 }
 
 class RecipeLocalDataSourceImpl implements RecipeLocalDataSource {
@@ -22,8 +26,72 @@ class RecipeLocalDataSourceImpl implements RecipeLocalDataSource {
       : appDatabase = database ?? AppDatabase.instance;
 
   @override
-  Future<List<RecipeModel>> getAll() async {
-    final db = await appDatabase.database;
+  Future<Map<String, List<String>>> getRecipeIngredientGraph({DatabaseExecutor? executor}) async {
+    final db = executor ?? await appDatabase.database;
+    final results = await db.query(
+      DatabaseTables.tableRecetaInsumo,
+      columns: ['receta_id', 'insumo_id'],
+    );
+    final graph = <String, List<String>>{};
+    for (final row in results) {
+      final recipeId = row['receta_id'] as String;
+      final ingredientId = row['insumo_id'] as String;
+      graph.putIfAbsent(recipeId, () => []).add(ingredientId);
+    }
+    return graph;
+  }
+
+  @override
+  Future<Map<String, List<String>>> getRecipePackagingGraph({DatabaseExecutor? executor}) async {
+    final db = executor ?? await appDatabase.database;
+    final results = await db.query(
+      DatabaseTables.tableRecetaEmpaque,
+      columns: ['receta_id', 'empaque_id'],
+    );
+    final graph = <String, List<String>>{};
+    for (final row in results) {
+      final recipeId = row['receta_id'] as String;
+      final packagingId = row['empaque_id'] as String;
+      graph.putIfAbsent(recipeId, () => []).add(packagingId);
+    }
+    return graph;
+  }
+
+  @override
+  Future<void> updateTimestamps(
+    List<String> recipeIds,
+    DateTime timestamp, {
+    DatabaseExecutor? executor,
+  }) async {
+    if (recipeIds.isEmpty) return;
+    final db = executor ?? await appDatabase.database;
+    final iso = timestamp.toIso8601String();
+    final placeholders = List.filled(recipeIds.length, '?').join(',');
+    await db.rawUpdate(
+      'UPDATE ${DatabaseTables.tableReceta} SET fecha_actualizacion = ? WHERE id IN ($placeholders)',
+      [iso, ...recipeIds],
+    );
+  }
+
+  @override
+  Future<Map<String, List<String>>> getSubRecipeDependencyGraph({DatabaseExecutor? executor}) async {
+    final db = executor ?? await appDatabase.database;
+    final results = await db.query(
+      DatabaseTables.tableRecetaSubreceta,
+      columns: ['receta_padre_id', 'receta_hija_id'],
+    );
+    final graph = <String, List<String>>{};
+    for (final row in results) {
+      final parent = row['receta_padre_id'] as String;
+      final child = row['receta_hija_id'] as String;
+      graph.putIfAbsent(parent, () => []).add(child);
+    }
+    return graph;
+  }
+
+  @override
+  Future<List<RecipeModel>> getAll({DatabaseExecutor? executor}) async {
+    final db = executor ?? await appDatabase.database;
     final results = await db.query(
       DatabaseTables.tableReceta,
       orderBy: 'nombre COLLATE NOCASE ASC',
@@ -46,8 +114,8 @@ class RecipeLocalDataSourceImpl implements RecipeLocalDataSource {
   }
 
   @override
-  Future<RecipeModel?> getById(String id) async {
-    final db = await appDatabase.database;
+  Future<RecipeModel?> getById(String id, {DatabaseExecutor? executor}) async {
+    final db = executor ?? await appDatabase.database;
     final results = await db.query(
       DatabaseTables.tableReceta,
       where: 'id = ?',
@@ -66,6 +134,76 @@ class RecipeLocalDataSourceImpl implements RecipeLocalDataSource {
       subRecipes: subRecipes,
       packaging: packaging,
     );
+  }
+
+  @override
+  Future<Map<String, RecipeModel>> getByIds(
+    List<String> ids, {
+    DatabaseExecutor? executor,
+  }) async {
+    if (ids.isEmpty) return const {};
+    final db = executor ?? await appDatabase.database;
+    final placeholders = List.filled(ids.length, '?').join(',');
+
+    final recipeRows = await db.query(
+      DatabaseTables.tableReceta,
+      where: 'id IN ($placeholders)',
+      whereArgs: ids,
+    );
+
+    final ingQuery = '''
+      SELECT ri.id, ri.receta_id, ri.insumo_id, ri.cantidad, ri.unidad, ri.seccion, ri.notas,
+             i.nombre as insumo_nombre, i.costo_unitario_minimo, i.densidad_g_ml, i.unidad_minima
+      FROM ${DatabaseTables.tableRecetaInsumo} ri
+      LEFT JOIN ${DatabaseTables.tableInsumo} i ON ri.insumo_id = i.id
+      WHERE ri.receta_id IN ($placeholders)
+    ''';
+    final ingRows = await db.rawQuery(ingQuery, ids);
+    final ingByRecipe = <String, List<RecipeIngredientItemModel>>{};
+    for (final row in ingRows) {
+      final rId = row['receta_id'] as String;
+      ingByRecipe.putIfAbsent(rId, () => []).add(RecipeIngredientItemModel.fromMap(row));
+    }
+
+    final packQuery = '''
+      SELECT re.id, re.receta_id, re.empaque_id, re.cantidad_piezas, re.notas,
+             e.nombre as empaque_nombre, e.costo_unitario
+      FROM ${DatabaseTables.tableRecetaEmpaque} re
+      LEFT JOIN ${DatabaseTables.tableEmpaque} e ON re.empaque_id = e.id
+      WHERE re.receta_id IN ($placeholders)
+    ''';
+    final packRows = await db.rawQuery(packQuery, ids);
+    final packByRecipe = <String, List<RecipePackagingItemModel>>{};
+    for (final row in packRows) {
+      final rId = row['receta_id'] as String;
+      packByRecipe.putIfAbsent(rId, () => []).add(RecipePackagingItemModel.fromMap(row));
+    }
+
+    final subQuery = '''
+      SELECT rs.id, rs.receta_padre_id, rs.receta_hija_id, rs.cantidad_factor, rs.seccion, rs.notas,
+             rh.nombre as receta_hija_nombre
+      FROM ${DatabaseTables.tableRecetaSubreceta} rs
+      LEFT JOIN ${DatabaseTables.tableReceta} rh ON rs.receta_hija_id = rh.id
+      WHERE rs.receta_padre_id IN ($placeholders)
+    ''';
+    final subRows = await db.rawQuery(subQuery, ids);
+    final subByRecipe = <String, List<RecipeSubRecipeItemModel>>{};
+    for (final row in subRows) {
+      final pId = row['receta_padre_id'] as String;
+      subByRecipe.putIfAbsent(pId, () => []).add(RecipeSubRecipeItemModel.fromMap(row));
+    }
+
+    final resultMap = <String, RecipeModel>{};
+    for (final row in recipeRows) {
+      final rId = row['id'] as String;
+      resultMap[rId] = RecipeModel.fromMap(
+        row,
+        ingredients: ingByRecipe[rId] ?? const [],
+        packaging: packByRecipe[rId] ?? const [],
+        subRecipes: subByRecipe[rId] ?? const [],
+      );
+    }
+    return resultMap;
   }
 
   @override
@@ -191,20 +329,41 @@ class RecipeLocalDataSourceImpl implements RecipeLocalDataSource {
     );
   }
 
-  @override
-  Future<Map<String, List<String>>> getSubRecipeDependencyGraph() async {
-    final db = await appDatabase.database;
-    final results = await db.query(
-      DatabaseTables.tableRecetaSubreceta,
-      columns: ['receta_padre_id', 'receta_hija_id'],
-    );
-    final graph = <String, List<String>>{};
-    for (final row in results) {
-      final parent = row['receta_padre_id'] as String;
-      final child = row['receta_hija_id'] as String;
-      graph.putIfAbsent(parent, () => []).add(child);
+  Future<PreciseDecimal> _calculateRecipeDirectCost(
+    DatabaseExecutor db,
+    String recipeId, [
+    Set<String>? visited,
+  ]) async {
+    final v = visited ?? <String>{};
+    if (!v.add(recipeId)) return PreciseDecimal.zero;
+
+    final ingredients = await _getIngredientsForRecipe(db, recipeId);
+    final packaging = await _getPackagingForRecipe(db, recipeId);
+
+    PreciseDecimal total = PreciseDecimal.zero;
+    for (final ing in ingredients) {
+      total += ing.calculateItemCost();
     }
-    return graph;
+    for (final pack in packaging) {
+      total += pack.calculateItemCost();
+    }
+
+    const subQuery = '''
+      SELECT receta_hija_id, cantidad_factor
+      FROM ${DatabaseTables.tableRecetaSubreceta}
+      WHERE receta_padre_id = ?
+    ''';
+    final subResults = await db.rawQuery(subQuery, [recipeId]);
+    for (final subRow in subResults) {
+      final childId = subRow['receta_hija_id'] as String;
+      final factor =
+          PreciseDecimal.fromString(subRow['cantidad_factor'] as String);
+      final childCost = await _calculateRecipeDirectCost(db, childId, v);
+      total += childCost * factor;
+    }
+
+    v.remove(recipeId);
+    return total;
   }
 
   Future<List<RecipeIngredientItemModel>> _getIngredientsForRecipe(
@@ -237,15 +396,7 @@ class RecipeLocalDataSourceImpl implements RecipeLocalDataSource {
     final subRecipes = <RecipeSubRecipeItemModel>[];
     for (final row in results) {
       final childId = row['receta_hija_id'] as String;
-      final childIngredients = await _getIngredientsForRecipe(db, childId);
-      final childPackaging = await _getPackagingForRecipe(db, childId);
-      PreciseDecimal childTotalCost = PreciseDecimal.zero;
-      for (final ing in childIngredients) {
-        childTotalCost += ing.calculateItemCost();
-      }
-      for (final pack in childPackaging) {
-        childTotalCost += pack.calculateItemCost();
-      }
+      final childTotalCost = await _calculateRecipeDirectCost(db, childId);
 
       final map = Map<String, dynamic>.from(row);
       map['costo_total_hija'] = childTotalCost.toStringAsFixed(4);

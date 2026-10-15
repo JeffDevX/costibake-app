@@ -7,6 +7,8 @@ import 'package:costibake_app/core/utils/precise_decimal.dart';
 import 'package:costibake_app/core/utils/unit_converter.dart';
 import 'package:costibake_app/core/widgets/responsive_center.dart';
 import '../../domain/entities/ingredient.dart';
+import '../../../recipes/presentation/bloc/recipes_bloc.dart';
+import '../../../recipes/presentation/bloc/recipes_event.dart';
 import '../bloc/catalog_bloc.dart';
 import '../bloc/catalog_event.dart';
 
@@ -285,20 +287,20 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
 
     if (isEditing) {
       context.read<CatalogBloc>().add(UpdateIngredient(ingredientToSave));
+      try {
+        context.read<RecipesBloc>().add(const LoadRecipes());
+      } catch (_) {}
     } else {
       context.read<CatalogBloc>().add(AddIngredient(ingredientToSave));
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isEditing
-              ? 'Insumo "$name" actualizado exitosamente (${minCost.toCurrencyString()}/$baseUnit)'
-              : 'Insumo "$name" registrado exitosamente (${minCost.toCurrencyString()}/$baseUnit)',
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Insumo "$name" registrado exitosamente (${minCost.toCurrencyString()}/$baseUnit)',
+          ),
+          backgroundColor: AppColors.profitGreen,
         ),
-        backgroundColor: AppColors.profitGreen,
-      ),
-    );
+      );
+    }
 
     Navigator.pop(context);
   }

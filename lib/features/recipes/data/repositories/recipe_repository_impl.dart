@@ -46,4 +46,19 @@ class RecipeRepositoryImpl implements RecipeRepository {
   Future<Map<String, List<String>>> getSubRecipeDependencyGraph() async {
     return await localDataSource.getSubRecipeDependencyGraph();
   }
+
+  @override
+  Future<Map<String, List<String>>> getRecipeIngredientGraph() async {
+    return await localDataSource.getRecipeIngredientGraph();
+  }
+
+  @override
+  Future<Map<String, List<String>>> getRecipePackagingGraph() async {
+    return await localDataSource.getRecipePackagingGraph();
+  }
+
+  @override
+  Future<void> updateRecipeTimestamps(List<String> recipeIds, DateTime timestamp) async {
+    await localDataSource.updateTimestamps(recipeIds, timestamp);
+  }
 }
