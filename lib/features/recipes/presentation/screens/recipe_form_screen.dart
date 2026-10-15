@@ -15,8 +15,10 @@ import '../../../catalog/domain/entities/packaging.dart';
 import '../../../catalog/domain/repositories/ingredient_repository.dart';
 import '../../../catalog/domain/repositories/packaging_repository.dart';
 import '../../../../features/costing/domain/entities/cost_breakdown.dart';
+import '../../../../features/costing/domain/entities/pricing_strategy.dart';
 import '../../../../features/costing/domain/services/costing_calculation_engine.dart';
 import '../../../../features/costing/presentation/widgets/cost_distribution_widget.dart';
+import '../../../../features/costing/presentation/widgets/dual_pricing_card.dart';
 import '../../../../features/settings/domain/entities/business_config.dart';
 import '../../../../features/settings/presentation/bloc/settings_bloc.dart';
 import '../../../../features/settings/presentation/bloc/settings_state.dart';
@@ -48,6 +50,11 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
   late TextEditingController _marginController;
   late TextEditingController _laborRateController;
   late TextEditingController _overheadController;
+
+  late PricingMode _pricingMode;
+  late RoundingRule _roundingRule;
+  PreciseDecimal? _customBatchPrice;
+  PreciseDecimal? _customPortionPrice;
 
   bool _useCustomLaborRate = false;
   bool _useCustomOverhead = false;
@@ -112,6 +119,11 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
           ? recipe.targetProfitMargin.toStringAsFixed(2)
           : AppConstants.defaultTargetProfitMargin.toStringAsFixed(2),
     );
+
+    _pricingMode = recipe?.pricingMode ?? PricingMode.markupOnCost;
+    _roundingRule = recipe?.roundingRule ?? RoundingRule.none;
+    _customBatchPrice = recipe?.customBatchPrice;
+    _customPortionPrice = recipe?.customPortionPrice;
 
     _useCustomLaborRate = recipe?.laborHourlyRateOverride != null;
     _laborRateController = TextEditingController(
@@ -266,6 +278,10 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
       bakeTimeMinutes: int.tryParse(_bakeTimeController.text.trim()) ?? 0,
       targetProfitMargin:
           margin >= PreciseDecimal.zero ? margin : PreciseDecimal.zero,
+      pricingMode: _pricingMode,
+      roundingRule: _roundingRule,
+      customBatchPrice: _customBatchPrice,
+      customPortionPrice: _customPortionPrice,
       status: _selectedStatus,
       createdAt: widget.recipeToEdit?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
@@ -283,6 +299,14 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
         laborHourlyRateOverride: laborOverride,
         overheadPercentageOverride: overheadOverride,
         targetProfitMarginOverride: margin,
+        pricingStrategyOverride: PricingStrategy(
+          mode: _pricingMode,
+          targetProfitMargin:
+              margin >= PreciseDecimal.zero ? margin : PreciseDecimal.zero,
+          roundingRule: _roundingRule,
+          customBatchPrice: _customBatchPrice,
+          customPortionPrice: _customPortionPrice,
+        ),
         yieldPortionsOverride: yieldVal > 0 ? yieldVal : 1,
         prepTimeMinutesOverride: prepMinutes >= 0 ? prepMinutes : 0,
       );
@@ -349,6 +373,10 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
           ? null
           : _moldDimensionController.text.trim(),
       targetProfitMargin: marginValue,
+      pricingMode: _pricingMode,
+      roundingRule: _roundingRule,
+      customBatchPrice: _customBatchPrice,
+      customPortionPrice: _customPortionPrice,
       laborHourlyRateOverride: laborOverride,
       overheadPercentageOverride: overheadOverride,
       status: _selectedStatus,
@@ -1854,149 +1882,32 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
           ),
           const SizedBox(height: 16),
 
-          // Profitability & Dual Suggested Pricing Card
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Sugerencia de Precios y Ganancia',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textEspresso,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.profitGreenLight,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '+${_marginController.text.trim()}% Markup',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.profitGreen,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceHighlight,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'LOTE COMPLETO',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  breakdown.suggestedBatchPrice
-                                      .toCurrencyString(symbol: config.currencySymbol),
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primaryCaramel,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Ganancia: +${breakdown.netProfitBatch.toCurrencyString(symbol: config.currencySymbol)}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.profitGreen,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          width: 1,
-                          height: 48,
-                          color: AppColors.borderWarm,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'PORCIÓN (${breakdown.yieldPortions} PZAS)',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  breakdown.suggestedPortionPrice
-                                      .toCurrencyString(symbol: config.currencySymbol),
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.profitGreen,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Ganancia: +${breakdown.netProfitPortion.toCurrencyString(symbol: config.currencySymbol)}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.profitGreen,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+          // Dual Suggested Pricing & Margin Strategy Card (JEF-16)
+          DualPricingCard(
+            key: const Key('recipe_form_dual_pricing_card'),
+            totalProductionCost: breakdown.totalProductionCost,
+            yieldPortions: breakdown.yieldPortions,
+            currencySymbol: config.currencySymbol,
+            initialStrategy: PricingStrategy(
+              mode: _pricingMode,
+              targetProfitMargin:
+                  PreciseDecimal.tryParse(_marginController.text.trim()) ??
+                      PreciseDecimal.fromDouble(
+                          AppConstants.defaultTargetProfitMargin),
+              roundingRule: _roundingRule,
+              customBatchPrice: _customBatchPrice,
+              customPortionPrice: _customPortionPrice,
             ),
+            onStrategyChanged: (newStrategy) {
+              setState(() {
+                _pricingMode = newStrategy.mode;
+                _roundingRule = newStrategy.roundingRule;
+                _customBatchPrice = newStrategy.customBatchPrice;
+                _customPortionPrice = newStrategy.customPortionPrice;
+                _marginController.text =
+                    newStrategy.targetProfitMargin.toStringAsFixed(0);
+              });
+            },
           ),
           const SizedBox(height: 16),
         ],

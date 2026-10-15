@@ -77,6 +77,30 @@ class AppDatabase {
         'ALTER TABLE ${DatabaseTables.tableReceta} ADD COLUMN porcentaje_overhead TEXT;',
       );
     } catch (_) {}
+
+    try {
+      await db.execute(
+        'ALTER TABLE ${DatabaseTables.tableReceta} ADD COLUMN modo_fijacion_precio TEXT DEFAULT "MARKUP_SOBRE_COSTO";',
+      );
+    } catch (_) {}
+
+    try {
+      await db.execute(
+        'ALTER TABLE ${DatabaseTables.tableReceta} ADD COLUMN regla_redondeo TEXT DEFAULT "NINGUNO";',
+      );
+    } catch (_) {}
+
+    try {
+      await db.execute(
+        'ALTER TABLE ${DatabaseTables.tableReceta} ADD COLUMN precio_venta_manual_lote TEXT;',
+      );
+    } catch (_) {}
+
+    try {
+      await db.execute(
+        'ALTER TABLE ${DatabaseTables.tableReceta} ADD COLUMN precio_venta_manual_porcion TEXT;',
+      );
+    } catch (_) {}
   }
 
   static Future<void> _insertDefaultConfiguration(DatabaseExecutor db) async {

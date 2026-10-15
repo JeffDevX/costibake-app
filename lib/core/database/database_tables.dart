@@ -52,6 +52,10 @@ class DatabaseTables {
       tarifa_mano_obra_hora TEXT,
       porcentaje_overhead TEXT,
       margen_ganancia_porcentaje TEXT NOT NULL DEFAULT '40.0000',
+      modo_fijacion_precio TEXT NOT NULL DEFAULT 'MARKUP_SOBRE_COSTO',
+      regla_redondeo TEXT NOT NULL DEFAULT 'NINGUNO',
+      precio_venta_manual_lote TEXT,
+      precio_venta_manual_porcion TEXT,
       estado TEXT NOT NULL DEFAULT 'ACTIVA',
       fecha_creacion TEXT NOT NULL,
       fecha_actualizacion TEXT NOT NULL

@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/utils/precise_decimal.dart';
+import '../../../costing/domain/entities/pricing_strategy.dart';
 import 'recipe_item.dart';
 
 class Recipe extends Equatable {
@@ -15,6 +16,10 @@ class Recipe extends Equatable {
   final PreciseDecimal? laborHourlyRateOverride; // Nullable: inherits from business config if null (RF-SYS-16)
   final PreciseDecimal? overheadPercentageOverride; // Nullable: inherits from business config if null (RF-SYS-15)
   final PreciseDecimal targetProfitMargin; // e.g. 40.0%
+  final PricingMode pricingMode; // Markup on Cost vs Margin on Sales (BR-PRC-01, RF-SYS-18)
+  final RoundingRule roundingRule; // Exact, 0.10, 0.50, 1.00 (RF-SYS-20)
+  final PreciseDecimal? customBatchPrice; // Optional manual batch price (BR-PRC-04)
+  final PreciseDecimal? customPortionPrice; // Optional manual portion price
   final String status; // 'ACTIVA', 'BORRADOR', 'INCOMPLETA_REQUIERE_REVISION'
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -34,6 +39,10 @@ class Recipe extends Equatable {
     this.laborHourlyRateOverride,
     this.overheadPercentageOverride,
     required this.targetProfitMargin,
+    this.pricingMode = PricingMode.markupOnCost,
+    this.roundingRule = RoundingRule.none,
+    this.customBatchPrice,
+    this.customPortionPrice,
     required this.status,
     required this.createdAt,
     required this.updatedAt,
@@ -91,6 +100,14 @@ class Recipe extends Equatable {
 
   bool get hasModularComponents => subRecipes.isNotEmpty || sections.length > 1;
 
+  PricingStrategy get pricingStrategy => PricingStrategy(
+        mode: pricingMode,
+        targetProfitMargin: targetProfitMargin,
+        roundingRule: roundingRule,
+        customBatchPrice: customBatchPrice,
+        customPortionPrice: customPortionPrice,
+      );
+
   Recipe copyWith({
     String? id,
     String? name,
@@ -103,6 +120,12 @@ class Recipe extends Equatable {
     PreciseDecimal? laborHourlyRateOverride,
     PreciseDecimal? overheadPercentageOverride,
     PreciseDecimal? targetProfitMargin,
+    PricingMode? pricingMode,
+    RoundingRule? roundingRule,
+    PreciseDecimal? customBatchPrice,
+    bool clearCustomBatchPrice = false,
+    PreciseDecimal? customPortionPrice,
+    bool clearCustomPortionPrice = false,
     String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -124,6 +147,14 @@ class Recipe extends Equatable {
       overheadPercentageOverride:
           overheadPercentageOverride ?? this.overheadPercentageOverride,
       targetProfitMargin: targetProfitMargin ?? this.targetProfitMargin,
+      pricingMode: pricingMode ?? this.pricingMode,
+      roundingRule: roundingRule ?? this.roundingRule,
+      customBatchPrice: clearCustomBatchPrice
+          ? null
+          : (customBatchPrice ?? this.customBatchPrice),
+      customPortionPrice: clearCustomPortionPrice
+          ? null
+          : (customPortionPrice ?? this.customPortionPrice),
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -146,6 +177,10 @@ class Recipe extends Equatable {
         laborHourlyRateOverride,
         overheadPercentageOverride,
         targetProfitMargin,
+        pricingMode,
+        roundingRule,
+        customBatchPrice,
+        customPortionPrice,
         status,
         createdAt,
         updatedAt,

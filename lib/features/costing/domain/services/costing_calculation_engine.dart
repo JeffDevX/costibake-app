@@ -3,11 +3,13 @@ import '../../../../core/utils/precise_decimal.dart';
 import '../../../recipes/domain/entities/recipe.dart';
 import '../../../settings/domain/entities/business_config.dart';
 import '../entities/cost_breakdown.dart';
+import '../entities/pricing_strategy.dart';
+import 'pricing_engine.dart';
 
 /// Pure domain service calculating the quadruple financial cost breakdown
-/// for a pastry recipe (JEF-15, RF-SYS-14..17, BR-CST-01..07, RNF-02).
+/// and dual commercial pricing for a pastry recipe (JEF-15, JEF-16, RF-SYS-14..20, BR-CST-01..07, BR-PRC-01..05, RNF-02).
 class CostingCalculationEngine {
-  /// Computes the complete integral cost breakdown:
+  /// Computes the complete integral cost breakdown and dual pricing:
   /// CTP = CI (Insumos + Sub-recetas) + CE (Empaques) + CMO (Mano de Obra) + COH (Overhead)
   static CostBreakdown calculate({
     required Recipe recipe,
@@ -15,6 +17,7 @@ class CostingCalculationEngine {
     PreciseDecimal? laborHourlyRateOverride,
     PreciseDecimal? overheadPercentageOverride,
     PreciseDecimal? targetProfitMarginOverride,
+    PricingStrategy? pricingStrategyOverride,
     int? yieldPortionsOverride,
     int? prepTimeMinutesOverride,
   }) {
@@ -67,7 +70,8 @@ class CostingCalculationEngine {
     }
 
     // COH = (CI + CE) * (Overhead % / 100)
-    final overheadMultiplier = effectiveOverheadPercent / PreciseDecimal.fromInt(100);
+    final overheadMultiplier =
+        effectiveOverheadPercent / PreciseDecimal.fromInt(100);
     final overheadCost = directBase * overheadMultiplier;
 
     // 5. Costo Total de Producción (CTP) (BR-CST-06, RF-SYS-17)
@@ -80,17 +84,22 @@ class CostingCalculationEngine {
     final costPerPortion =
         totalProductionCost / PreciseDecimal.fromInt(effectivePortions);
 
-    // 7. Fijación de Precios según Margen (Markup)
-    final effectiveMargin = targetProfitMarginOverride ?? recipe.targetProfitMargin;
-    final marginMultiplier = PreciseDecimal.fromInt(1) +
-        (effectiveMargin / PreciseDecimal.fromInt(100));
+    // 7. Fijación de Precios Dual según Estrategia de Margen (JEF-16, RF-SYS-18..20, BR-PRC-01..05)
+    final effectiveStrategy = pricingStrategyOverride ??
+        PricingStrategy(
+          mode: recipe.pricingMode,
+          targetProfitMargin:
+              targetProfitMarginOverride ?? recipe.targetProfitMargin,
+          roundingRule: recipe.roundingRule,
+          customBatchPrice: recipe.customBatchPrice,
+          customPortionPrice: recipe.customPortionPrice,
+        );
 
-    final suggestedBatchPrice = totalProductionCost * marginMultiplier;
-    final suggestedPortionPrice =
-        suggestedBatchPrice / PreciseDecimal.fromInt(effectivePortions);
-
-    final netProfitBatch = suggestedBatchPrice - totalProductionCost;
-    final netProfitPortion = suggestedPortionPrice - costPerPortion;
+    final dualPricing = PricingEngine.calculate(
+      totalProductionCost: totalProductionCost,
+      yieldPortions: effectivePortions,
+      strategy: effectiveStrategy,
+    );
 
     return CostBreakdown(
       rawMaterialsCost: rawMaterialsCost,
@@ -105,10 +114,11 @@ class CostingCalculationEngine {
       totalProductionCost: totalProductionCost,
       yieldPortions: effectivePortions,
       costPerPortion: costPerPortion,
-      suggestedBatchPrice: suggestedBatchPrice,
-      suggestedPortionPrice: suggestedPortionPrice,
-      netProfitBatch: netProfitBatch,
-      netProfitPortion: netProfitPortion,
+      suggestedBatchPrice: dualPricing.effectiveBatchPrice,
+      suggestedPortionPrice: dualPricing.effectivePortionPrice,
+      netProfitBatch: dualPricing.netProfitBatch,
+      netProfitPortion: dualPricing.netProfitPortion,
+      pricing: dualPricing,
     );
   }
 }

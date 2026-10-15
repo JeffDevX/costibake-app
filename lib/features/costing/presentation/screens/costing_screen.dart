@@ -4,9 +4,12 @@ import 'package:costibake_app/core/constants/app_breakpoints.dart';
 import 'package:costibake_app/core/theme/app_colors.dart';
 import 'package:costibake_app/core/utils/precise_decimal.dart';
 import 'package:costibake_app/core/widgets/responsive_center.dart';
+import 'package:costibake_app/features/costing/domain/entities/pricing_strategy.dart';
 import 'package:costibake_app/features/costing/domain/services/cost_calculator.dart';
 import 'package:costibake_app/features/costing/presentation/widgets/cost_distribution_widget.dart';
+import 'package:costibake_app/features/costing/presentation/widgets/dual_pricing_card.dart';
 import 'package:costibake_app/features/recipes/presentation/bloc/recipes_bloc.dart';
+import 'package:costibake_app/features/recipes/presentation/bloc/recipes_event.dart';
 import 'package:costibake_app/features/recipes/presentation/bloc/recipes_state.dart';
 import 'package:costibake_app/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:costibake_app/features/settings/presentation/bloc/settings_state.dart';
@@ -99,7 +102,9 @@ class CostingScreen extends StatelessWidget {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
-                                        '+${recipe.targetProfitMargin.toStringAsFixed(0)}% Markup',
+                                        recipe.pricingMode == PricingMode.markupOnCost
+                                            ? '+${recipe.targetProfitMargin.toStringAsFixed(0)}% Markup'
+                                            : '+${recipe.targetProfitMargin.toStringAsFixed(0)}% Margen Venta',
                                         style: const TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
@@ -135,85 +140,33 @@ class CostingScreen extends StatelessWidget {
                                   currencySymbol: config.currencySymbol,
                                 ),
                                 const SizedBox(height: 14),
-                                // Dual Pricing Card (Lote vs Porcion)
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.surfaceHighlight,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              'PRECIO LOTE SUGERIDO',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                                color: AppColors.textMuted,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            FittedBox(
-                                              fit: BoxFit.scaleDown,
-                                              alignment: Alignment.centerLeft,
-                                              child: Text(
-                                                breakdown.suggestedBatchPrice
-                                                    .toCurrencyString(symbol: config.currencySymbol),
-                                                style: const TextStyle(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: AppColors.primaryCaramel,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Container(
-                                        width: 1,
-                                        height: 36,
-                                        color: AppColors.borderWarm,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'PORCIÓN (${recipe.yieldPortions} PZAS)',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                                color: AppColors.textMuted,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            FittedBox(
-                                              fit: BoxFit.scaleDown,
-                                              alignment: Alignment.centerLeft,
-                                              child: Text(
-                                                breakdown.suggestedPortionPrice
-                                                    .toCurrencyString(symbol: config.currencySymbol),
-                                                style: const TextStyle(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: AppColors.profitGreen,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                // Interactive Dual Pricing Card (JEF-16)
+                                DualPricingCard(
+                                  key: Key('costing_dual_pricing_${recipe.id}'),
+                                  totalProductionCost:
+                                      breakdown.totalProductionCost,
+                                  yieldPortions: breakdown.yieldPortions,
+                                  currencySymbol: config.currencySymbol,
+                                  initialStrategy: recipe.pricingStrategy,
+                                  onStrategyChanged: (newStrategy) {
+                                    final updatedRecipe = recipe.copyWith(
+                                      pricingMode: newStrategy.mode,
+                                      targetProfitMargin:
+                                          newStrategy.targetProfitMargin,
+                                      roundingRule: newStrategy.roundingRule,
+                                      customBatchPrice:
+                                          newStrategy.customBatchPrice,
+                                      clearCustomBatchPrice:
+                                          newStrategy.customBatchPrice == null,
+                                      customPortionPrice:
+                                          newStrategy.customPortionPrice,
+                                      clearCustomPortionPrice:
+                                          newStrategy.customPortionPrice == null,
+                                    );
+                                    context
+                                        .read<RecipesBloc>()
+                                        .add(UpdateRecipe(updatedRecipe));
+                                  },
                                 ),
                               ],
                             ),
