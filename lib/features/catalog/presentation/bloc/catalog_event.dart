@@ -101,3 +101,9 @@ class FilterCatalog extends CatalogEvent {
         clearPackagingCategory,
       ];
 }
+
+/// Clears the transient dependency block notification state after the modal dialog is dismissed (JEF-17)
+class ClearDependencyBlock extends CatalogEvent {
+  const ClearDependencyBlock();
+}
+

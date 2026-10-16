@@ -3,9 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:costibake_app/core/constants/app_breakpoints.dart';
 import 'package:costibake_app/core/theme/app_colors.dart';
 import 'package:costibake_app/core/widgets/responsive_center.dart';
+import '../../domain/entities/dependency_block_info.dart';
+import '../../domain/entities/ingredient.dart';
+import '../../domain/entities/packaging.dart';
 import '../bloc/catalog_bloc.dart';
 import '../bloc/catalog_event.dart';
 import '../bloc/catalog_state.dart';
+import '../widgets/dependency_protection_dialog.dart';
 import 'ingredient_form_screen.dart';
 import 'packaging_form_screen.dart';
 
@@ -82,6 +86,111 @@ class _CatalogScreenState extends State<CatalogScreen>
     setState(() {});
   }
 
+  Future<void> _attemptDeleteIngredient(Ingredient item) async {
+    final bloc = context.read<CatalogBloc>();
+    final affectedRecipes = await bloc.checkIngredientDependencies(item.id);
+    if (!mounted) return;
+
+    if (affectedRecipes.isNotEmpty) {
+      await DependencyProtectionDialog.show(
+        context,
+        blockInfo: DependencyBlockInfo(
+          itemId: item.id,
+          itemName: item.name,
+          isPackaging: false,
+          affectedRecipeNames: affectedRecipes,
+        ),
+      );
+      return;
+    }
+
+    _showSimpleDeleteConfirmation(
+      itemName: item.name,
+      isPackaging: false,
+      onConfirm: () {
+        bloc.add(DeleteIngredient(id: item.id));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Insumo "${item.name}" eliminado.'),
+            backgroundColor: AppColors.textEspresso,
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _attemptDeletePackaging(Packaging item) async {
+    final bloc = context.read<CatalogBloc>();
+    final affectedRecipes = await bloc.checkPackagingDependencies(item.id);
+    if (!mounted) return;
+
+    if (affectedRecipes.isNotEmpty) {
+      await DependencyProtectionDialog.show(
+        context,
+        blockInfo: DependencyBlockInfo(
+          itemId: item.id,
+          itemName: item.name,
+          isPackaging: true,
+          affectedRecipeNames: affectedRecipes,
+        ),
+      );
+      return;
+    }
+
+    _showSimpleDeleteConfirmation(
+      itemName: item.name,
+      isPackaging: true,
+      onConfirm: () {
+        bloc.add(DeletePackaging(item.id));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Empaque "${item.name}" eliminado.'),
+            backgroundColor: AppColors.textEspresso,
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSimpleDeleteConfirmation({
+    required String itemName,
+    required bool isPackaging,
+    required VoidCallback onConfirm,
+  }) {
+    final typeLabel = isPackaging ? 'Empaque' : 'Insumo';
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) {
+        return AlertDialog(
+          key: const Key('simple_delete_confirm_dialog'),
+          title: Text('Eliminar $typeLabel'),
+          content: Text(
+            '¿Estás seguro de que deseas eliminar "$itemName"? Esta acción es permanente (0 recetas afectadas).',
+          ),
+          actions: [
+            TextButton(
+              key: const Key('btn_cancel_simple_delete'),
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              key: const Key('btn_confirm_simple_delete'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.costRed,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(dialogCtx);
+                onConfirm();
+              },
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isPackagingTab = _currentTabIndex == 1;
@@ -109,6 +218,14 @@ class _CatalogScreenState extends State<CatalogScreen>
                 backgroundColor: AppColors.profitGreen,
                 duration: const Duration(seconds: 4),
               ),
+            );
+          }
+          if (state is CatalogLoaded && state.lastDependencyBlock != null) {
+            final blockInfo = state.lastDependencyBlock!;
+            context.read<CatalogBloc>().add(const ClearDependencyBlock());
+            DependencyProtectionDialog.show(
+              context,
+              blockInfo: blockInfo,
             );
           }
         },
@@ -429,31 +546,47 @@ class _CatalogScreenState extends State<CatalogScreen>
                     ),
                 ],
               ),
-              trailing: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerRight,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '\$${item.minimumUnitCost.toStringAsFixed(4)}/${item.minimumUnit}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: AppColors.primaryDarkCaramel,
-                      ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '\$${item.minimumUnitCost.toStringAsFixed(4)}/${item.minimumUnit}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: AppColors.primaryDarkCaramel,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${item.minimumUnitCost.toCurrencyString()}/${item.minimumUnit}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${item.minimumUnitCost.toCurrencyString()}/${item.minimumUnit}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textMuted,
-                      ),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    key: Key('btn_delete_ingredient_${item.id}'),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: AppColors.costRed,
+                      size: 20,
                     ),
-                  ],
-                ),
+                    tooltip: 'Eliminar Insumo',
+                    onPressed: () => _attemptDeleteIngredient(item),
+                  ),
+                ],
               ),
             ),
           );
@@ -583,31 +716,47 @@ class _CatalogScreenState extends State<CatalogScreen>
                     ),
                 ],
               ),
-              trailing: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerRight,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '\$${item.unitCost.toStringAsFixed(4)}/u',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: AppColors.primaryDarkCaramel,
-                      ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '\$${item.unitCost.toStringAsFixed(4)}/u',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: AppColors.primaryDarkCaramel,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${item.unitCost.toCurrencyString()}/u',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${item.unitCost.toCurrencyString()}/u',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textMuted,
-                      ),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    key: Key('btn_delete_packaging_${item.id}'),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: AppColors.costRed,
+                      size: 20,
                     ),
-                  ],
-                ),
+                    tooltip: 'Eliminar Empaque',
+                    onPressed: () => _attemptDeletePackaging(item),
+                  ),
+                ],
               ),
             ),
           );

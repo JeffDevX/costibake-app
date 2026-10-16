@@ -7,9 +7,11 @@ import '../../../../core/utils/precise_decimal.dart';
 import '../../../../core/widgets/responsive_center.dart';
 import '../../../recipes/presentation/bloc/recipes_bloc.dart';
 import '../../../recipes/presentation/bloc/recipes_event.dart';
+import '../../domain/entities/dependency_block_info.dart';
 import '../../domain/entities/packaging.dart';
 import '../bloc/catalog_bloc.dart';
 import '../bloc/catalog_event.dart';
+import '../widgets/dependency_protection_dialog.dart';
 
 class PackagingFormScreen extends StatefulWidget {
   final Packaging? packaging;
@@ -153,32 +155,53 @@ class _PackagingFormScreenState extends State<PackagingFormScreen> {
     Navigator.pop(context);
   }
 
-  void _confirmDelete() {
+  Future<void> _confirmDelete() async {
     final p = widget.packaging;
     if (p == null) return;
 
-    showDialog(
+    final bloc = context.read<CatalogBloc>();
+    final affectedRecipes = await bloc.checkPackagingDependencies(p.id);
+    if (!mounted) return;
+
+    // RF-SYS-21, RF-SYS-22, BR-INT-01, BR-INT-02: Block deletion if in use
+    if (affectedRecipes.isNotEmpty) {
+      await DependencyProtectionDialog.show(
+        context,
+        blockInfo: DependencyBlockInfo(
+          itemId: p.id,
+          itemName: p.name,
+          isPackaging: true,
+          affectedRecipeNames: affectedRecipes,
+        ),
+      );
+      return;
+    }
+
+    // BR-INT-03: Simple confirmation when 0 active dependencies
+    await showDialog<void>(
       context: context,
       builder: (dialogCtx) {
         return AlertDialog(
+          key: const Key('simple_delete_confirm_dialog'),
           title: const Text('Eliminar Empaque'),
           content: Text(
-            '¿Estás seguro de que deseas eliminar "${p.name}"? '
-            'Si está siendo utilizado en recetas formuladas, el sistema bloqueará el borrado para proteger tus costos.',
+            '¿Estás seguro de que deseas eliminar "${p.name}"? Esta acción es permanente (0 recetas afectadas).',
           ),
           actions: [
             TextButton(
+              key: const Key('btn_cancel_simple_delete'),
               onPressed: () => Navigator.pop(dialogCtx),
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
+              key: const Key('btn_confirm_simple_delete'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.costRed,
                 foregroundColor: Colors.white,
               ),
               onPressed: () {
                 Navigator.pop(dialogCtx);
-                context.read<CatalogBloc>().add(DeletePackaging(p.id));
+                bloc.add(DeletePackaging(p.id));
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -205,6 +228,7 @@ class _PackagingFormScreenState extends State<PackagingFormScreen> {
         actions: [
           if (isEditing)
             IconButton(
+              key: const Key('btn_delete_packaging_form'),
               icon: const Icon(Icons.delete_outline, color: AppColors.costRed),
               tooltip: 'Eliminar Empaque',
               onPressed: _confirmDelete,
