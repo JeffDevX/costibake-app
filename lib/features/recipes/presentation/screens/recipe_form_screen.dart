@@ -28,6 +28,7 @@ import '../../domain/entities/recipe_item.dart';
 import '../../domain/repositories/recipe_repository.dart';
 import '../bloc/recipes_bloc.dart';
 import '../bloc/recipes_event.dart';
+import '../widgets/recipe_pdf_export_dialog.dart';
 import 'recipe_scaling_screen.dart';
 
 class RecipeFormScreen extends StatefulWidget {
@@ -624,6 +625,62 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
     );
   }
 
+  Recipe _buildRecipeFromForm() {
+    final yieldValue = int.tryParse(_yieldController.text.trim()) ?? 1;
+    final marginValue =
+        PreciseDecimal.tryParse(_marginController.text.trim()) ??
+            PreciseDecimal.fromDouble(AppConstants.defaultTargetProfitMargin);
+
+    final laborOverride = _useCustomLaborRate &&
+            _laborRateController.text.trim().isNotEmpty
+        ? PreciseDecimal.tryParse(_laborRateController.text.trim())
+        : null;
+
+    final overheadOverride = _useCustomOverhead &&
+            _overheadController.text.trim().isNotEmpty
+        ? PreciseDecimal.tryParse(_overheadController.text.trim())
+        : null;
+
+    final now = DateTime.now();
+    final recipeId = widget.recipeToEdit?.id ?? const Uuid().v4();
+
+    return Recipe(
+      id: recipeId,
+      name: _nameController.text.trim().isNotEmpty
+          ? _nameController.text.trim()
+          : (widget.recipeToEdit?.name ?? 'Receta sin nombre'),
+      description: _descController.text.trim().isEmpty
+          ? null
+          : _descController.text.trim(),
+      yieldPortions: yieldValue > 0 ? yieldValue : 1,
+      prepTimeMinutes: int.tryParse(_prepTimeController.text.trim()) ?? 0,
+      bakeTimeMinutes: int.tryParse(_bakeTimeController.text.trim()) ?? 0,
+      moldType: _selectedMoldType,
+      moldDimension: _moldDimensionController.text.trim().isEmpty
+          ? null
+          : _moldDimensionController.text.trim(),
+      targetProfitMargin: marginValue,
+      pricingMode: _pricingMode,
+      roundingRule: _roundingRule,
+      customBatchPrice: _customBatchPrice,
+      customPortionPrice: _customPortionPrice,
+      laborHourlyRateOverride: laborOverride,
+      overheadPercentageOverride: overheadOverride,
+      status: _selectedStatus,
+      createdAt: widget.recipeToEdit?.createdAt ?? now,
+      updatedAt: now,
+      ingredients: _ingredients
+          .map((i) => i.copyWith(recipeId: recipeId))
+          .toList(),
+      subRecipes: _subRecipes
+          .map((s) => s.copyWith(parentRecipeId: recipeId))
+          .toList(),
+      packaging: _packaging
+          .map((p) => p.copyWith(recipeId: recipeId))
+          .toList(),
+    );
+  }
+
   void _saveRecipe() {
     setState(() => _validationAlert = null);
 
@@ -654,56 +711,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
       return;
     }
 
-    final marginValue =
-        PreciseDecimal.tryParse(_marginController.text.trim()) ??
-            PreciseDecimal.fromDouble(AppConstants.defaultTargetProfitMargin);
-
-    final laborOverride = _useCustomLaborRate &&
-            _laborRateController.text.trim().isNotEmpty
-        ? PreciseDecimal.tryParse(_laborRateController.text.trim())
-        : null;
-
-    final overheadOverride = _useCustomOverhead &&
-            _overheadController.text.trim().isNotEmpty
-        ? PreciseDecimal.tryParse(_overheadController.text.trim())
-        : null;
-
-    final now = DateTime.now();
-    final recipeId = widget.recipeToEdit?.id ?? const Uuid().v4();
-
-    final recipe = Recipe(
-      id: recipeId,
-      name: _nameController.text.trim(),
-      description: _descController.text.trim().isEmpty
-          ? null
-          : _descController.text.trim(),
-      yieldPortions: yieldValue,
-      prepTimeMinutes: int.tryParse(_prepTimeController.text.trim()) ?? 0,
-      bakeTimeMinutes: int.tryParse(_bakeTimeController.text.trim()) ?? 0,
-      moldType: _selectedMoldType,
-      moldDimension: _moldDimensionController.text.trim().isEmpty
-          ? null
-          : _moldDimensionController.text.trim(),
-      targetProfitMargin: marginValue,
-      pricingMode: _pricingMode,
-      roundingRule: _roundingRule,
-      customBatchPrice: _customBatchPrice,
-      customPortionPrice: _customPortionPrice,
-      laborHourlyRateOverride: laborOverride,
-      overheadPercentageOverride: overheadOverride,
-      status: _selectedStatus,
-      createdAt: widget.recipeToEdit?.createdAt ?? now,
-      updatedAt: now,
-      ingredients: _ingredients
-          .map((i) => i.copyWith(recipeId: recipeId))
-          .toList(),
-      subRecipes: _subRecipes
-          .map((s) => s.copyWith(parentRecipeId: recipeId))
-          .toList(),
-      packaging: _packaging
-          .map((p) => p.copyWith(recipeId: recipeId))
-          .toList(),
-    );
+    final recipe = _buildRecipeFromForm();
 
     final bloc = context.read<RecipesBloc>();
     if (isEditing) {
@@ -1250,7 +1258,21 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
       appBar: AppBar(
         title: Text(isEditing ? 'Editar Receta' : 'Formular Nueva Receta'),
         actions: [
-          if (isEditing && widget.recipeToEdit != null)
+          if (isEditing && widget.recipeToEdit != null) ...[
+            IconButton(
+              key: const Key('btn_export_recipe_pdf'),
+              tooltip: 'Exportar Ficha Técnica / Producción en PDF',
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              onPressed: () {
+                final currentRecipe = _buildRecipeFromForm();
+                RecipePdfExportDialog.show(
+                  context,
+                  recipe: currentRecipe,
+                  businessConfig: _effectiveBusinessConfig,
+                  costBreakdown: _currentBreakdown,
+                );
+              },
+            ),
             IconButton(
               key: const Key('btn_open_scaling_screen'),
               tooltip: 'Escalar Receta / Molde',
@@ -1265,6 +1287,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                 );
               },
             ),
+          ],
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -2589,6 +2612,30 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                 });
               },
             ),
+          const SizedBox(height: 16),
+
+          // Botón Exportar PDF (BR-EXP-01)
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton.icon(
+              key: const Key('btn_export_pdf_costing_tab'),
+              onPressed: () {
+                final currentRecipe = _buildRecipeFromForm();
+                RecipePdfExportDialog.show(
+                  context,
+                  recipe: currentRecipe,
+                  businessConfig: _effectiveBusinessConfig,
+                  costBreakdown: _currentBreakdown,
+                );
+              },
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              label: const Text(
+                'Exportar Ficha Técnica / Producción en PDF',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
         ],
       ),

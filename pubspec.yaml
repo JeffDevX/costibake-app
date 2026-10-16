@@ -32,6 +32,9 @@ dependencies:
 
   # UI & Design Tokens
   cupertino_icons: ^1.0.8
+  pdf: ^3.12.0
+  printing: ^5.14.3
+  image: 4.2.0
 
 dev_dependencies:
   flutter_test:
