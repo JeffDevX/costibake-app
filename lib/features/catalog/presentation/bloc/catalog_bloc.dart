@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/errors/exceptions.dart';
 import '../../../costing/data/services/cascade_recalculation_service.dart';
+import '../../domain/entities/dependency_block_info.dart';
 import '../../domain/repositories/ingredient_repository.dart';
 import '../../domain/repositories/packaging_repository.dart';
 import 'catalog_event.dart';
@@ -25,6 +27,27 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
     on<UpdatePackaging>(_onUpdatePackaging);
     on<DeletePackaging>(_onDeletePackaging);
     on<FilterCatalog>(_onFilterCatalog);
+    on<ClearDependencyBlock>(_onClearDependencyBlock);
+  }
+
+  /// Queries recipes actively using the given ingredient (`RF-SYS-21`).
+  Future<List<String>> checkIngredientDependencies(String ingredientId) {
+    return ingredientRepository.getRecipesUsingIngredient(ingredientId);
+  }
+
+  /// Queries recipes actively using the given packaging item (`RF-SYS-21`).
+  Future<List<String>> checkPackagingDependencies(String packagingId) {
+    return packagingRepository.getRecipesUsingPackaging(packagingId);
+  }
+
+  void _onClearDependencyBlock(
+    ClearDependencyBlock event,
+    Emitter<CatalogState> emit,
+  ) {
+    if (state is CatalogLoaded) {
+      final current = state as CatalogLoaded;
+      emit(current.copyWith(clearDependencyBlock: true));
+    }
   }
 
   Future<void> _onLoadCatalog(
@@ -124,6 +147,13 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
     try {
       await ingredientRepository.deleteIngredient(event.id, force: event.force);
       add(const LoadCatalog());
+    } on DependencyConstraintException catch (e) {
+      await _emitDependencyBlock(
+        emit: emit,
+        itemId: event.id,
+        isPackaging: false,
+        affectedRecipeNames: e.affectedRecipeNames,
+      );
     } catch (e) {
       emit(CatalogError(e.toString()));
     }
@@ -180,8 +210,69 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
     try {
       await packagingRepository.deletePackaging(event.id, force: event.force);
       add(const LoadCatalog());
+    } on DependencyConstraintException catch (e) {
+      await _emitDependencyBlock(
+        emit: emit,
+        itemId: event.id,
+        isPackaging: true,
+        affectedRecipeNames: e.affectedRecipeNames,
+      );
     } catch (e) {
       emit(CatalogError(e.toString()));
     }
+  }
+
+  Future<void> _emitDependencyBlock({
+    required Emitter<CatalogState> emit,
+    required String itemId,
+    required bool isPackaging,
+    required List<String> affectedRecipeNames,
+  }) async {
+    String itemName = itemId;
+    if (state is CatalogLoaded) {
+      final current = state as CatalogLoaded;
+      if (isPackaging) {
+        final match =
+            current.allPackagings.where((p) => p.id == itemId).toList();
+        if (match.isNotEmpty) itemName = match.first.name;
+      } else {
+        final match =
+            current.allIngredients.where((i) => i.id == itemId).toList();
+        if (match.isNotEmpty) itemName = match.first.name;
+      }
+
+      emit(current.copyWith(
+        lastDependencyBlock: DependencyBlockInfo(
+          itemId: itemId,
+          itemName: itemName,
+          isPackaging: isPackaging,
+          affectedRecipeNames: affectedRecipeNames,
+        ),
+        clearCascadeResult: true,
+      ));
+      return;
+    }
+
+    // Fallback if state was not CatalogLoaded yet
+    final ingredients = await ingredientRepository.getAllIngredients();
+    final packagings = await packagingRepository.getAllPackaging();
+    if (isPackaging) {
+      final match = packagings.where((p) => p.id == itemId).toList();
+      if (match.isNotEmpty) itemName = match.first.name;
+    } else {
+      final match = ingredients.where((i) => i.id == itemId).toList();
+      if (match.isNotEmpty) itemName = match.first.name;
+    }
+
+    emit(CatalogLoaded(
+      ingredients: ingredients,
+      packagings: packagings,
+      lastDependencyBlock: DependencyBlockInfo(
+        itemId: itemId,
+        itemName: itemName,
+        isPackaging: isPackaging,
+        affectedRecipeNames: affectedRecipeNames,
+      ),
+    ));
   }
 }

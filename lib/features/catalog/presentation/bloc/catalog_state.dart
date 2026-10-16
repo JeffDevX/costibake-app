@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../../../core/utils/text_search_utils.dart';
 import '../../../costing/domain/entities/cascade_recalculation_result.dart';
+import '../../domain/entities/dependency_block_info.dart';
 import '../../domain/entities/ingredient.dart';
 import '../../domain/entities/packaging.dart';
 
@@ -26,6 +27,7 @@ class CatalogLoaded extends CatalogState {
   final String? ingredientCategory;
   final String? packagingCategory;
   final CascadeRecalculationResult? lastCascadeResult;
+  final DependencyBlockInfo? lastDependencyBlock;
 
   const CatalogLoaded({
     required List<Ingredient> ingredients,
@@ -34,6 +36,7 @@ class CatalogLoaded extends CatalogState {
     this.ingredientCategory,
     this.packagingCategory,
     this.lastCascadeResult,
+    this.lastDependencyBlock,
   })  : allIngredients = ingredients,
         allPackagings = packagings;
 
@@ -87,6 +90,7 @@ class CatalogLoaded extends CatalogState {
         ingredientCategory,
         packagingCategory,
         lastCascadeResult,
+        lastDependencyBlock,
       ];
 
   CatalogLoaded copyWith({
@@ -96,9 +100,11 @@ class CatalogLoaded extends CatalogState {
     String? ingredientCategory,
     String? packagingCategory,
     CascadeRecalculationResult? lastCascadeResult,
+    DependencyBlockInfo? lastDependencyBlock,
     bool clearIngredientCategory = false,
     bool clearPackagingCategory = false,
     bool clearCascadeResult = false,
+    bool clearDependencyBlock = false,
   }) {
     return CatalogLoaded(
       ingredients: ingredients ?? allIngredients,
@@ -113,6 +119,9 @@ class CatalogLoaded extends CatalogState {
       lastCascadeResult: clearCascadeResult
           ? null
           : (lastCascadeResult ?? this.lastCascadeResult),
+      lastDependencyBlock: clearDependencyBlock
+          ? null
+          : (lastDependencyBlock ?? this.lastDependencyBlock),
     );
   }
 }

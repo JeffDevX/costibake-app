@@ -6,11 +6,13 @@ import 'package:costibake_app/core/theme/app_colors.dart';
 import 'package:costibake_app/core/utils/precise_decimal.dart';
 import 'package:costibake_app/core/utils/unit_converter.dart';
 import 'package:costibake_app/core/widgets/responsive_center.dart';
+import '../../domain/entities/dependency_block_info.dart';
 import '../../domain/entities/ingredient.dart';
 import '../../../recipes/presentation/bloc/recipes_bloc.dart';
 import '../../../recipes/presentation/bloc/recipes_event.dart';
 import '../bloc/catalog_bloc.dart';
 import '../bloc/catalog_event.dart';
+import '../widgets/dependency_protection_dialog.dart';
 
 class IngredientFormScreen extends StatefulWidget {
   final Ingredient? ingredient;
@@ -305,6 +307,69 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
     Navigator.pop(context);
   }
 
+  Future<void> _confirmDelete() async {
+    final ing = widget.ingredient;
+    if (ing == null) return;
+
+    final bloc = context.read<CatalogBloc>();
+    final affectedRecipes = await bloc.checkIngredientDependencies(ing.id);
+    if (!mounted) return;
+
+    // RF-SYS-21, RF-SYS-22, BR-INT-01, BR-INT-02: Block deletion if in use
+    if (affectedRecipes.isNotEmpty) {
+      await DependencyProtectionDialog.show(
+        context,
+        blockInfo: DependencyBlockInfo(
+          itemId: ing.id,
+          itemName: ing.name,
+          isPackaging: false,
+          affectedRecipeNames: affectedRecipes,
+        ),
+      );
+      return;
+    }
+
+    // BR-INT-03: Simple confirmation when 0 active dependencies
+    await showDialog<void>(
+      context: context,
+      builder: (dialogCtx) {
+        return AlertDialog(
+          key: const Key('simple_delete_confirm_dialog'),
+          title: const Text('Eliminar Insumo'),
+          content: Text(
+            '¿Estás seguro de que deseas eliminar "${ing.name}"? Esta acción es permanente (0 recetas afectadas).',
+          ),
+          actions: [
+            TextButton(
+              key: const Key('btn_cancel_simple_delete'),
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              key: const Key('btn_confirm_simple_delete'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.costRed,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(dialogCtx);
+                bloc.add(DeleteIngredient(id: ing.id));
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Insumo "${ing.name}" eliminado.'),
+                    backgroundColor: AppColors.textEspresso,
+                  ),
+                );
+              },
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.ingredient != null;
@@ -312,6 +377,15 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(isEditing ? 'Editar Insumo' : 'Registrar Insumo a Granel'),
+        actions: [
+          if (isEditing)
+            IconButton(
+              key: const Key('btn_delete_ingredient_form'),
+              icon: const Icon(Icons.delete_outline, color: AppColors.costRed),
+              tooltip: 'Eliminar Insumo',
+              onPressed: _confirmDelete,
+            ),
+        ],
       ),
       body: ResponsiveCenter(
         maxWidth: AppBreakpoints.maxFormWidth,
