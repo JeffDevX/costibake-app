@@ -22,11 +22,13 @@ import '../../../../features/costing/presentation/widgets/dual_pricing_card.dart
 import '../../../../features/settings/domain/entities/business_config.dart';
 import '../../../../features/settings/presentation/bloc/settings_bloc.dart';
 import '../../../../features/settings/presentation/bloc/settings_state.dart';
+import '../../domain/entities/mold_preset.dart';
 import '../../domain/entities/recipe.dart';
 import '../../domain/entities/recipe_item.dart';
 import '../../domain/repositories/recipe_repository.dart';
 import '../bloc/recipes_bloc.dart';
 import '../bloc/recipes_event.dart';
+import 'recipe_scaling_screen.dart';
 
 class RecipeFormScreen extends StatefulWidget {
   final Recipe? recipeToEdit;
@@ -937,6 +939,23 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text(isEditing ? 'Editar Receta' : 'Formular Nueva Receta'),
+        actions: [
+          if (isEditing && widget.recipeToEdit != null)
+            IconButton(
+              key: const Key('btn_open_scaling_screen'),
+              tooltip: 'Escalar Receta / Molde',
+              icon: const Icon(Icons.aspect_ratio_outlined),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        RecipeScalingScreen(recipe: widget.recipeToEdit!),
+                  ),
+                );
+              },
+            ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppColors.primaryDarkCaramel,
@@ -1252,6 +1271,46 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Moldes estándar rápidos (RF-SYS-12):',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      ...MoldPreset.circularPresets.sublist(1, 6), // 6", 8", 9", 10", 12"
+                      MoldPreset.rectangularPresets[2], // 20x30 cm
+                      MoldPreset.rectangularPresets[4], // 30x40 cm
+                    ].map((preset) {
+                      final isSelected = _moldDimensionController.text.trim() ==
+                          preset.dimensionLabel;
+                      return ActionChip(
+                        key: Key('form_mold_preset_${preset.id}'),
+                        label: Text(
+                          '${preset.moldTypeLabel} ${preset.dimensionLabel}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        backgroundColor: isSelected
+                            ? AppColors.butterCream
+                            : AppColors.surfaceWarm,
+                        onPressed: () {
+                          setState(() {
+                            _selectedMoldType = preset.moldTypeLabel;
+                            _moldDimensionController.text =
+                                preset.dimensionLabel;
+                          });
+                        },
+                      );
+                    }).toList(),
                   ),
                   const SizedBox(height: 14),
 
