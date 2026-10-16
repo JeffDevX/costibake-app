@@ -9,6 +9,7 @@ import '../bloc/recipes_bloc.dart';
 import '../bloc/recipes_event.dart';
 import '../bloc/recipes_state.dart';
 import 'recipe_form_screen.dart';
+import 'recipe_scaling_screen.dart';
 
 class RecipesScreen extends StatefulWidget {
   const RecipesScreen({super.key});
@@ -370,6 +371,43 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                               ],
                                             ),
                                           ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Align(
+                                          alignment: Alignment.centerRight,
+                                          child: TextButton.icon(
+                                            key: Key('btn_scale_recipe_${recipe.id}'),
+                                            style: TextButton.styleFrom(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 10,
+                                                vertical: 4,
+                                              ),
+                                              minimumSize: const Size(48, 36),
+                                              tapTargetSize:
+                                                  MaterialTapTargetSize.shrinkWrap,
+                                            ),
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      RecipeScalingScreen(
+                                                          recipe: recipe),
+                                                ),
+                                              );
+                                            },
+                                            icon: const Icon(
+                                              Icons.aspect_ratio_outlined,
+                                              size: 16,
+                                            ),
+                                            label: const Text(
+                                              'Escalar Receta / Molde',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),
