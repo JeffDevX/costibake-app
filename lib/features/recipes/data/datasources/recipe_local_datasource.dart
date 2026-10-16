@@ -153,7 +153,8 @@ class RecipeLocalDataSourceImpl implements RecipeLocalDataSource {
 
     final ingQuery = '''
       SELECT ri.id, ri.receta_id, ri.insumo_id, ri.cantidad, ri.unidad, ri.seccion, ri.notas,
-             i.nombre as insumo_nombre, i.costo_unitario_minimo, i.densidad_g_ml, i.unidad_minima
+             i.nombre as insumo_nombre, i.costo_unitario_minimo, i.densidad_g_ml, i.unidad_minima,
+             COALESCE(i.eliminado, 0) as insumo_eliminado
       FROM ${DatabaseTables.tableRecetaInsumo} ri
       LEFT JOIN ${DatabaseTables.tableInsumo} i ON ri.insumo_id = i.id
       WHERE ri.receta_id IN ($placeholders)
@@ -167,7 +168,8 @@ class RecipeLocalDataSourceImpl implements RecipeLocalDataSource {
 
     final packQuery = '''
       SELECT re.id, re.receta_id, re.empaque_id, re.cantidad_piezas, re.notas,
-             e.nombre as empaque_nombre, e.costo_unitario
+             e.nombre as empaque_nombre, e.costo_unitario,
+             COALESCE(e.eliminado, 0) as empaque_eliminado
       FROM ${DatabaseTables.tableRecetaEmpaque} re
       LEFT JOIN ${DatabaseTables.tableEmpaque} e ON re.empaque_id = e.id
       WHERE re.receta_id IN ($placeholders)
@@ -372,7 +374,8 @@ class RecipeLocalDataSourceImpl implements RecipeLocalDataSource {
   ) async {
     const query = '''
       SELECT ri.id, ri.receta_id, ri.insumo_id, ri.cantidad, ri.unidad, ri.seccion, ri.notas,
-             i.nombre as insumo_nombre, i.costo_unitario_minimo, i.densidad_g_ml, i.unidad_minima
+             i.nombre as insumo_nombre, i.costo_unitario_minimo, i.densidad_g_ml, i.unidad_minima,
+             COALESCE(i.eliminado, 0) as insumo_eliminado
       FROM ${DatabaseTables.tableRecetaInsumo} ri
       LEFT JOIN ${DatabaseTables.tableInsumo} i ON ri.insumo_id = i.id
       WHERE ri.receta_id = ?
@@ -411,7 +414,8 @@ class RecipeLocalDataSourceImpl implements RecipeLocalDataSource {
   ) async {
     const query = '''
       SELECT re.id, re.receta_id, re.empaque_id, re.cantidad_piezas, re.notas,
-             e.nombre as empaque_nombre, e.costo_unitario
+             e.nombre as empaque_nombre, e.costo_unitario,
+             COALESCE(e.eliminado, 0) as empaque_eliminado
       FROM ${DatabaseTables.tableRecetaEmpaque} re
       LEFT JOIN ${DatabaseTables.tableEmpaque} e ON re.empaque_id = e.id
       WHERE re.receta_id = ?

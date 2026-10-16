@@ -7,13 +7,17 @@ import '../../../recipes/data/repositories/recipe_repository_impl.dart';
 import '../../../recipes/domain/entities/recipe.dart';
 import '../../../recipes/domain/repositories/recipe_repository.dart';
 import '../../../recipes/presentation/bloc/recipes_bloc.dart';
+import '../../../recipes/presentation/bloc/recipes_event.dart';
 import '../../../recipes/presentation/bloc/recipes_state.dart';
 import '../../../recipes/presentation/screens/recipe_form_screen.dart';
 import '../../domain/entities/dependency_block_info.dart';
+import '../bloc/catalog_bloc.dart';
+import '../bloc/catalog_event.dart';
+import 'forced_delete_confirmation_dialog.dart';
 
 /// Protective modal dialog displayed when a user attempts to delete an
 /// ingredient or packaging item that is actively referenced by one or more
-/// recipes (`RF-SYS-21`, `RF-SYS-22`, `BR-INT-01`, `BR-INT-02`).
+/// recipes (`RF-SYS-21`, `RF-SYS-22`, `BR-INT-01`, `BR-INT-02`, `RF-SYS-23`).
 ///
 /// Features:
 /// - Displays the blocked item name, total count of affected recipes, and the
@@ -21,15 +25,25 @@ import '../../domain/entities/dependency_block_info.dart';
 /// - Allows tapping any affected recipe in the list (`"Ver Receta afectada"`)
 ///   to navigate directly to `RecipeFormScreen` so the user can edit the recipe
 ///   and replace the ingredient manually.
+/// - Provides a `"Forzar Eliminación..."` secondary action (`BR-FRC-01`) that
+///   opens a second-level confirmation modal requiring the user to type
+///   `"ELIMINAR"` before force-deleting and transitioning dependent recipes to
+///   `INCOMPLETA_REQUIERE_REVISION` (`BR-FRC-02`).
 /// - Provides a `"Cancelar"` action with a touch target >= 48px.
 class DependencyProtectionDialog extends StatelessWidget {
   final DependencyBlockInfo blockInfo;
   final void Function(String recipeName)? onNavigateToRecipe;
+  final VoidCallback? onForceDeleteConfirmed;
+  final CatalogBloc? catalogBloc;
+  final RecipesBloc? recipesBloc;
 
   const DependencyProtectionDialog({
     super.key,
     required this.blockInfo,
     this.onNavigateToRecipe,
+    this.onForceDeleteConfirmed,
+    this.catalogBloc,
+    this.recipesBloc,
   });
 
   /// Helper to display the protective modal dialog (`RF-SYS-22`).
@@ -37,13 +51,90 @@ class DependencyProtectionDialog extends StatelessWidget {
     BuildContext context, {
     required DependencyBlockInfo blockInfo,
     void Function(String recipeName)? onNavigateToRecipe,
+    VoidCallback? onForceDeleteConfirmed,
   }) {
+    CatalogBloc? resolvedCatalogBloc;
+    RecipesBloc? resolvedRecipesBloc;
+    try {
+      resolvedCatalogBloc = context.read<CatalogBloc>();
+    } catch (_) {}
+    try {
+      resolvedRecipesBloc = context.read<RecipesBloc>();
+    } catch (_) {}
+
     return showDialog<void>(
       context: context,
       barrierDismissible: true,
       builder: (_) => DependencyProtectionDialog(
         blockInfo: blockInfo,
         onNavigateToRecipe: onNavigateToRecipe,
+        onForceDeleteConfirmed: onForceDeleteConfirmed,
+        catalogBloc: resolvedCatalogBloc,
+        recipesBloc: resolvedRecipesBloc,
+      ),
+    );
+  }
+
+  Future<void> _handleForceDeleteTap(BuildContext context) async {
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.maybeOf(context);
+
+    CatalogBloc? activeCatalogBloc = catalogBloc;
+    if (activeCatalogBloc == null) {
+      try {
+        activeCatalogBloc = context.read<CatalogBloc>();
+      } catch (_) {}
+    }
+
+    RecipesBloc? activeRecipesBloc = recipesBloc;
+    if (activeRecipesBloc == null) {
+      try {
+        activeRecipesBloc = context.read<RecipesBloc>();
+      } catch (_) {}
+    }
+
+    final confirmed = await ForcedDeleteConfirmationDialog.show(
+      context,
+      blockInfo: blockInfo,
+    );
+
+    if (!confirmed) return;
+
+    if (onForceDeleteConfirmed != null) {
+      navigator.pop();
+      onForceDeleteConfirmed!();
+      return;
+    }
+
+    if (activeCatalogBloc != null) {
+      if (blockInfo.isPackaging) {
+        activeCatalogBloc.add(
+          DeletePackaging(blockInfo.itemId, force: true),
+        );
+      } else {
+        activeCatalogBloc.add(
+          DeleteIngredient(id: blockInfo.itemId, force: true),
+        );
+      }
+    }
+
+    // Refresh recipes list after forced deletion transitions dependent recipes
+    if (activeRecipesBloc != null) {
+      Future<void>.delayed(const Duration(milliseconds: 50), () {
+        activeRecipesBloc!.add(const LoadRecipes());
+      });
+    }
+
+    navigator.pop();
+
+    messenger?.showSnackBar(
+      SnackBar(
+        content: Text(
+          '"${blockInfo.itemName}" eliminado. ${blockInfo.affectedCount} '
+          '${blockInfo.affectedCount == 1 ? 'receta pasó' : 'recetas pasaron'} '
+          'a estado INCOMPLETA (Requiere Revisión).',
+        ),
+        backgroundColor: AppColors.warningAmber,
       ),
     );
   }
@@ -277,6 +368,26 @@ class DependencyProtectionDialog extends StatelessWidget {
         ),
       ),
       actions: [
+        SizedBox(
+          height: 48,
+          child: TextButton.icon(
+            key: const Key('btn_open_force_delete_dialog'),
+            onPressed: () => _handleForceDeleteTap(context),
+            icon: const Icon(
+              Icons.warning_amber_rounded,
+              size: 16,
+              color: AppColors.costRed,
+            ),
+            label: const Text(
+              'Forzar Eliminación...',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.costRed,
+              ),
+            ),
+          ),
+        ),
         SizedBox(
           height: 48,
           child: TextButton(

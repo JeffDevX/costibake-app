@@ -257,13 +257,7 @@ void main() {
     late RecipeRepositoryImpl recipeRepo;
 
     setUp(() async {
-      final db = await AppDatabase.instance.database;
-      await db.delete('receta_insumo');
-      await db.delete('receta_empaque');
-      await db.delete('receta_subreceta');
-      await db.delete('receta');
-      await db.delete('insumo');
-      await db.delete('empaque');
+      await AppDatabase.openInMemoryTestDatabase();
 
       ingredientRepo = IngredientRepositoryImpl();
       packagingRepo = PackagingRepositoryImpl();

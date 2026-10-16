@@ -226,12 +226,24 @@ class _RecipesScreenState extends State<RecipesScreen> {
                             itemBuilder: (context, index) {
                               final recipe = recipes[index];
                               final isIncomplete = recipe.status ==
-                                  AppConstants.recipeStatusIncomplete;
+                                      AppConstants.recipeStatusIncomplete ||
+                                  recipe.hasOrphanedItems;
                               final isDraft = recipe.status ==
                                   AppConstants.recipeStatusDraft;
 
                               return Card(
+                                key: Key('recipe_card_${recipe.id}'),
                                 margin: const EdgeInsets.only(bottom: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: isIncomplete
+                                      ? BorderSide(
+                                          color: AppColors.costRed
+                                              .withValues(alpha: 0.5),
+                                          width: 1.5,
+                                        )
+                                      : BorderSide.none,
+                                ),
                                 child: InkWell(
                                   borderRadius: BorderRadius.circular(12),
                                   onTap: () {
@@ -251,6 +263,14 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                       children: [
                                         Row(
                                           children: [
+                                            if (isIncomplete) ...[
+                                              const Icon(
+                                                Icons.warning_amber_rounded,
+                                                color: AppColors.costRed,
+                                                size: 20,
+                                              ),
+                                              const SizedBox(width: 6),
+                                            ],
                                             Expanded(
                                               child: Text(
                                                 recipe.name,
@@ -264,6 +284,8 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                             ),
                                             if (isIncomplete) ...[
                                               Container(
+                                                key: Key(
+                                                    'badge_incomplete_recipe_${recipe.id}'),
                                                 padding:
                                                     const EdgeInsets.symmetric(
                                                         horizontal: 8,
@@ -321,55 +343,108 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                         // Badges: modular components count & cost
                                         Row(
                                           children: [
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.butterCream,
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                '${recipe.ingredients.length} insumos'
-                                                '${recipe.subRecipes.isNotEmpty ? ' • ${recipe.subRecipes.length} sub-recetas' : ''}',
-                                                style: const TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: AppColors
-                                                      .primaryDarkCaramel,
+                                            Flexible(
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 3),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.butterCream,
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
                                                 ),
-                                              ),
-                                            ),
-                                            const Spacer(),
-                                            Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.end,
-                                              children: [
-                                                Text(
-                                                  'Lote: \$${recipe.totalDirectCost.toStringAsFixed(2)}',
+                                                child: Text(
+                                                  '${recipe.ingredients.length} insumos'
+                                                  '${recipe.subRecipes.isNotEmpty ? ' • ${recipe.subRecipes.length} sub-recetas' : ''}',
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                   style: const TextStyle(
+                                                    fontSize: 11,
                                                     fontWeight: FontWeight.bold,
-                                                    fontSize: 14,
-                                                    color:
-                                                        AppColors.textEspresso,
+                                                    color: AppColors
+                                                        .primaryDarkCaramel,
                                                   ),
                                                 ),
-                                                if (recipe.yieldPortions > 1) ...[
-                                                  Text(
-                                                    '\$${(recipe.totalDirectCost / PreciseDecimal.fromInt(recipe.yieldPortions)).toStringAsFixed(2)} / porción',
-                                                    style: const TextStyle(
-                                                      fontSize: 11,
-                                                      color: AppColors
-                                                          .primaryDarkCaramel,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ],
+                                              ),
                                             ),
+                                            const SizedBox(width: 8),
+                                            if (isIncomplete)
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.end,
+                                                  children: [
+                                                    const Text(
+                                                      'Receta Incompleta',
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 12,
+                                                        color:
+                                                            AppColors.costRed,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      'Precio sugerido deshabilitado',
+                                                      key: Key(
+                                                          'incomplete_price_warning_${recipe.id}'),
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: const TextStyle(
+                                                        fontSize: 11,
+                                                        color:
+                                                            AppColors.costRed,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              )
+                                            else
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.end,
+                                                  children: [
+                                                    Text(
+                                                      'Lote: \$${recipe.totalDirectCost.toStringAsFixed(2)}',
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 14,
+                                                        color: AppColors
+                                                            .textEspresso,
+                                                      ),
+                                                    ),
+                                                    if (recipe.yieldPortions >
+                                                        1) ...[
+                                                      Text(
+                                                        '\$${(recipe.totalDirectCost / PreciseDecimal.fromInt(recipe.yieldPortions)).toStringAsFixed(2)} / porción',
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        style: const TextStyle(
+                                                          fontSize: 11,
+                                                          color: AppColors
+                                                              .primaryDarkCaramel,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                              ),
                                           ],
                                         ),
                                         const SizedBox(height: 8),

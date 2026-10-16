@@ -14,6 +14,7 @@ class RecipeIngredientItem extends Equatable {
   final PreciseDecimal? densityGPerMl;
   final String? baseUnit; // 'g', 'ml', 'unidad'
   final String? notes;
+  final bool isDeleted;
 
   const RecipeIngredientItem({
     required this.id,
@@ -27,11 +28,21 @@ class RecipeIngredientItem extends Equatable {
     this.densityGPerMl,
     this.baseUnit,
     this.notes,
+    this.isDeleted = false,
   });
 
+  /// True when the underlying catalog ingredient was force-deleted (`BR-FRC-02`).
+  bool get isOrphaned =>
+      isDeleted || ingredientName.toUpperCase().contains('[ELIMINADO]');
+
+  /// Historical display name without the trailing `[ELIMINADO]` marker.
+  String get cleanHistoricalName =>
+      ingredientName.replaceAll(' [ELIMINADO]', '').replaceAll('[ELIMINADO]', '').trim();
+
   /// Cost of this ingredient item in the recipe = quantity (normalized to base unit) * unitCost
-  /// Conforms to RF-SYS-11 and BR-REC-03.
+  /// Conforms to RF-SYS-11, BR-REC-03, and RF-SYS-23 (0 when orphaned).
   PreciseDecimal calculateItemCost({PreciseDecimal? normalizedFactor}) {
+    if (isOrphaned) return PreciseDecimal.zero;
     if (normalizedFactor != null) {
       return (quantity * normalizedFactor) * unitCost;
     }
@@ -65,6 +76,7 @@ class RecipeIngredientItem extends Equatable {
     PreciseDecimal? densityGPerMl,
     String? baseUnit,
     String? notes,
+    bool? isDeleted,
   }) {
     return RecipeIngredientItem(
       id: id ?? this.id,
@@ -78,6 +90,7 @@ class RecipeIngredientItem extends Equatable {
       densityGPerMl: densityGPerMl ?? this.densityGPerMl,
       baseUnit: baseUnit ?? this.baseUnit,
       notes: notes ?? this.notes,
+      isDeleted: isDeleted ?? this.isDeleted,
     );
   }
 
@@ -94,6 +107,7 @@ class RecipeIngredientItem extends Equatable {
         densityGPerMl,
         baseUnit,
         notes,
+        isDeleted,
       ];
 }
 
@@ -167,6 +181,7 @@ class RecipePackagingItem extends Equatable {
   final int pieceQuantity;
   final PreciseDecimal unitCost;
   final String? notes;
+  final bool isDeleted;
 
   const RecipePackagingItem({
     required this.id,
@@ -176,9 +191,20 @@ class RecipePackagingItem extends Equatable {
     required this.pieceQuantity,
     required this.unitCost,
     this.notes,
+    this.isDeleted = false,
   });
 
+  /// True when the underlying catalog packaging was force-deleted (`BR-FRC-02`).
+  bool get isOrphaned =>
+      isDeleted || packagingName.toUpperCase().contains('[ELIMINADO]');
+
+  /// Returns the historical packaging name without the `[ELIMINADO]` suffix.
+  String get cleanHistoricalName => packagingName
+      .replaceAll(RegExp(r'\s*\[ELIMINADO\]', caseSensitive: false), '')
+      .trim();
+
   PreciseDecimal calculateItemCost() {
+    if (isOrphaned) return PreciseDecimal.zero;
     return PreciseDecimal.fromInt(pieceQuantity) * unitCost;
   }
 
@@ -190,6 +216,7 @@ class RecipePackagingItem extends Equatable {
     int? pieceQuantity,
     PreciseDecimal? unitCost,
     String? notes,
+    bool? isDeleted,
   }) {
     return RecipePackagingItem(
       id: id ?? this.id,
@@ -199,6 +226,7 @@ class RecipePackagingItem extends Equatable {
       pieceQuantity: pieceQuantity ?? this.pieceQuantity,
       unitCost: unitCost ?? this.unitCost,
       notes: notes ?? this.notes,
+      isDeleted: isDeleted ?? this.isDeleted,
     );
   }
 
@@ -211,5 +239,6 @@ class RecipePackagingItem extends Equatable {
         pieceQuantity,
         unitCost,
         notes,
+        isDeleted,
       ];
 }

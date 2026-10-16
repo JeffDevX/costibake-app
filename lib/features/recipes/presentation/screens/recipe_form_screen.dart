@@ -317,6 +317,313 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
     }
   }
 
+  bool _isIngredientOrphaned(RecipeIngredientItem ing) {
+    if (ing.isOrphaned) return true;
+    if (!_isLoadingLookups &&
+        _availableIngredients.isNotEmpty &&
+        !_availableIngredients.any((a) => a.id == ing.ingredientId)) {
+      return true;
+    }
+    return false;
+  }
+
+  bool _isPackagingOrphaned(RecipePackagingItem pack) {
+    if (pack.isOrphaned) return true;
+    if (!_isLoadingLookups &&
+        _availablePackaging.isNotEmpty &&
+        !_availablePackaging.any((a) => a.id == pack.packagingId)) {
+      return true;
+    }
+    return false;
+  }
+
+  List<RecipeIngredientItem> get _orphanedIngredients =>
+      _ingredients.where(_isIngredientOrphaned).toList();
+
+  List<RecipePackagingItem> get _orphanedPackaging =>
+      _packaging.where(_isPackagingOrphaned).toList();
+
+  bool get _hasOrphanedItems =>
+      _orphanedIngredients.isNotEmpty || _orphanedPackaging.isNotEmpty;
+
+  bool get _isRecipeIncomplete =>
+      _selectedStatus == AppConstants.recipeStatusIncomplete ||
+      _hasOrphanedItems;
+
+  /// Automatically transitions the recipe lifecycle state (`BR-FRC-04`):
+  /// - If orphaned items still exist, forces `INCOMPLETA_REQUIERE_REVISION`.
+  /// - If all orphaned items have been replaced/resolved and the recipe has at
+  ///   least one valid component, restores `ACTIVA`.
+  void _syncLifecycleStatusAfterOrphanResolution() {
+    if (_hasOrphanedItems) {
+      _selectedStatus = AppConstants.recipeStatusIncomplete;
+    } else if (_selectedStatus == AppConstants.recipeStatusIncomplete &&
+        (_ingredients.isNotEmpty || _subRecipes.isNotEmpty)) {
+      _selectedStatus = AppConstants.recipeStatusActive;
+    }
+  }
+
+  String get _incompleteBannerMessage {
+    final missingNames = <String>[
+      ..._orphanedIngredients.map((i) => i.cleanHistoricalName),
+      ..._orphanedPackaging.map((p) => p.cleanHistoricalName),
+    ];
+    final count = missingNames.isEmpty ? 1 : missingNames.length;
+    final namesDetail =
+        missingNames.isNotEmpty ? ' (${missingNames.join(', ')})' : '';
+    if (count == 1) {
+      return 'Receta incompleta: 1 ingrediente ha sido eliminado del catálogo$namesDetail. Asigne un sustituto para reactivar el costeo.';
+    }
+    return 'Receta incompleta: $count ingredientes han sido eliminados del catálogo$namesDetail. Asigne un sustituto para reactivar el costeo.';
+  }
+
+  void _showReplaceOrphanIngredientDialog(RecipeIngredientItem orphanItem) {
+    if (_availableIngredients.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No hay insumos activos en el catálogo para asignar como sustituto.',
+          ),
+          backgroundColor: AppColors.costRed,
+        ),
+      );
+      return;
+    }
+
+    Ingredient selectedSubstitute = _availableIngredients.first;
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              key: const Key('replace_orphan_ingredient_dialog'),
+              scrollable: true,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Row(
+                children: [
+                  Icon(
+                    Icons.swap_horiz_rounded,
+                    color: AppColors.primaryCaramel,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Asignar Sustituto',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textEspresso,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Reemplazar "${orphanItem.cleanHistoricalName}" '
+                    '(${orphanItem.quantity.toStringAsFixed(2)} ${orphanItem.unit} en ${orphanItem.section}) '
+                    'por un insumo activo del catálogo (BR-FRC-04):',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<Ingredient>(
+                    key: const Key('dropdown_substitute_ingredient'),
+                    initialValue: selectedSubstitute,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Insumo Sustituto Activo',
+                      prefixIcon: Icon(Icons.egg_outlined),
+                    ),
+                    items: _availableIngredients.map((i) {
+                      return DropdownMenuItem<Ingredient>(
+                        value: i,
+                        child: Text(
+                          '${i.name} (\$${i.minimumUnitCost}/${i.minimumUnit})',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() => selectedSubstitute = val);
+                      }
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                SizedBox(
+                  height: 48,
+                  child: TextButton(
+                    key: const Key('btn_cancel_replace_orphan_ingredient'),
+                    onPressed: () => Navigator.of(dialogCtx).pop(),
+                    child: const Text('Cancelar'),
+                  ),
+                ),
+                SizedBox(
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    key: const Key('btn_confirm_replace_orphan_ingredient'),
+                    onPressed: () {
+                      final idx = _ingredients
+                          .indexWhere((i) => i.id == orphanItem.id);
+                      if (idx != -1) {
+                        final replacement = RecipeIngredientItem(
+                          id: orphanItem.id,
+                          recipeId: orphanItem.recipeId,
+                          ingredientId: selectedSubstitute.id,
+                          ingredientName: selectedSubstitute.name,
+                          quantity: orphanItem.quantity,
+                          unit: orphanItem.unit,
+                          section: orphanItem.section,
+                          unitCost: selectedSubstitute.minimumUnitCost,
+                          densityGPerMl: selectedSubstitute.densityGPerMl,
+                          baseUnit: selectedSubstitute.minimumUnit,
+                          notes: orphanItem.notes,
+                          isDeleted: false,
+                        );
+                        setState(() {
+                          _ingredients[idx] = replacement;
+                          _syncLifecycleStatusAfterOrphanResolution();
+                        });
+                      }
+                      Navigator.of(dialogCtx).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _isRecipeIncomplete
+                                ? 'Sustituto "${selectedSubstitute.name}" asignado.'
+                                : 'Sustituto "${selectedSubstitute.name}" asignado. Receta restaurada a estado ACTIVA.',
+                          ),
+                          backgroundColor: AppColors.profitGreen,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.check_circle_outline, size: 18),
+                    label: const Text('Confirmar Sustituto'),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showReplaceOrphanPackagingDialog(RecipePackagingItem orphanPack) {
+    if (_availablePackaging.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No hay empaques activos en el catálogo para asignar como sustituto.',
+          ),
+          backgroundColor: AppColors.costRed,
+        ),
+      );
+      return;
+    }
+
+    Packaging selectedSubstitute = _availablePackaging.first;
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              key: const Key('replace_orphan_packaging_dialog'),
+              scrollable: true,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Asignar Empaque Sustituto',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textEspresso,
+                ),
+              ),
+              content: DropdownButtonFormField<Packaging>(
+                key: const Key('dropdown_substitute_packaging'),
+                initialValue: selectedSubstitute,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Empaque Sustituto Activo',
+                  prefixIcon: Icon(Icons.inventory_2_outlined),
+                ),
+                items: _availablePackaging.map((p) {
+                  return DropdownMenuItem<Packaging>(
+                    value: p,
+                    child: Text(
+                      '${p.name} (\$${p.unitCost}/pz)',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setDialogState(() => selectedSubstitute = val);
+                  }
+                },
+              ),
+              actions: [
+                SizedBox(
+                  height: 48,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(dialogCtx).pop(),
+                    child: const Text('Cancelar'),
+                  ),
+                ),
+                SizedBox(
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    key: const Key('btn_confirm_replace_orphan_packaging'),
+                    onPressed: () {
+                      final idx =
+                          _packaging.indexWhere((p) => p.id == orphanPack.id);
+                      if (idx != -1) {
+                        final replacement = RecipePackagingItem(
+                          id: orphanPack.id,
+                          recipeId: orphanPack.recipeId,
+                          packagingId: selectedSubstitute.id,
+                          packagingName: selectedSubstitute.name,
+                          pieceQuantity: orphanPack.pieceQuantity,
+                          unitCost: selectedSubstitute.unitCost,
+                          isDeleted: false,
+                        );
+                        setState(() {
+                          _packaging[idx] = replacement;
+                          _syncLifecycleStatusAfterOrphanResolution();
+                        });
+                      }
+                      Navigator.of(dialogCtx).pop();
+                    },
+                    icon: const Icon(Icons.check_circle_outline, size: 18),
+                    label: const Text('Confirmar Sustituto'),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _saveRecipe() {
     setState(() => _validationAlert = null);
 
@@ -333,6 +640,9 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
       _tabController.animateTo(1);
       return;
     }
+
+    // Ensure lifecycle status reflects whether orphaned items remain (BR-FRC-04)
+    _syncLifecycleStatusAfterOrphanResolution();
 
     final yieldValue = int.tryParse(_yieldController.text.trim()) ?? 0;
     if (yieldValue <= 0) {
@@ -1050,16 +1360,102 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
           ? const Center(child: CircularProgressIndicator())
           : Form(
               key: _formKey,
-              child: TabBarView(
-                controller: _tabController,
+              child: Column(
                 children: [
-                  _buildGeneralTab(),
-                  _buildIngredientsTab(),
-                  _buildPackagingTab(),
-                  _buildCostingTab(),
+                  if (_isRecipeIncomplete) _buildIncompleteRecipeBanner(),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildGeneralTab(),
+                        _buildIngredientsTab(),
+                        _buildPackagingTab(),
+                        _buildCostingTab(),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildIncompleteRecipeBanner() {
+    return Container(
+      key: const Key('incomplete_recipe_warning_banner'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.costRedLight,
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.costRed.withValues(alpha: 0.4),
+          ),
+        ),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: AppBreakpoints.maxContentWidth,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.warning_amber_rounded,
+              color: AppColors.costRed,
+              size: 22,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _incompleteBannerMessage,
+                key: const Key('incomplete_recipe_warning_text'),
+                style: const TextStyle(
+                  color: AppColors.costRed,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12.5,
+                  height: 1.3,
+                ),
+              ),
+            ),
+            if (_orphanedIngredients.isNotEmpty ||
+                _orphanedPackaging.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 38,
+                child: TextButton(
+                  key: const Key('btn_banner_resolve_orphan'),
+                  style: TextButton.styleFrom(
+                    backgroundColor: AppColors.costRed,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                  onPressed: () {
+                    if (_orphanedIngredients.isNotEmpty) {
+                      _tabController.animateTo(1);
+                      _showReplaceOrphanIngredientDialog(
+                        _orphanedIngredients.first,
+                      );
+                    } else if (_orphanedPackaging.isNotEmpty) {
+                      _tabController.animateTo(2);
+                      _showReplaceOrphanPackagingDialog(
+                        _orphanedPackaging.first,
+                      );
+                    }
+                  },
+                  child: const Text(
+                    'Sustituir',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
@@ -1164,6 +1560,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                       const SizedBox(width: 12),
                       Expanded(
                         child: DropdownButtonFormField<String>(
+                          key: ValueKey('status_dropdown_$_selectedStatus'),
                           initialValue: _selectedStatus,
                           isExpanded: true,
                           decoration: const InputDecoration(
@@ -1178,6 +1575,10 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                             DropdownMenuItem(
                               value: AppConstants.recipeStatusDraft,
                               child: Text('BORRADOR'),
+                            ),
+                            DropdownMenuItem(
+                              value: AppConstants.recipeStatusIncomplete,
+                              child: Text('INCOMPLETA'),
                             ),
                           ],
                           onChanged: (val) {
@@ -1535,38 +1936,133 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
 
             // List ingredients in this section
             for (final ing in sectionIngs) ...[
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.circle,
-                    size: 8, color: AppColors.primaryCaramel),
-                title: Text(
-                  ing.ingredientName,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text(
-                  '${ing.quantity.toStringAsFixed(2)} ${ing.unit}'
-                  '${ing.notes != null ? ' • ${ing.notes}' : ''}',
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '\$${ing.calculateItemCost().toStringAsFixed(4)}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textEspresso,
+              Builder(
+                builder: (context) {
+                  final isOrphaned = _isIngredientOrphaned(ing);
+                  if (isOrphaned) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.costRedLight.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.costRed.withValues(alpha: 0.4),
+                        ),
                       ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.warning_amber_rounded,
+                                size: 20,
+                                color: AppColors.costRed,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      ing.ingredientName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.costRed,
+                                        fontSize: 13.5,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${ing.quantity.toStringAsFixed(2)} ${ing.unit} • Eliminado del catálogo (Costo excluido)',
+                                      style: const TextStyle(
+                                        fontSize: 11.5,
+                                        color: AppColors.costRed,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  size: 20,
+                                  color: AppColors.costRed,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _ingredients.remove(ing);
+                                    _syncLifecycleStatusAfterOrphanResolution();
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          SizedBox(
+                            height: 40,
+                            child: TextButton.icon(
+                              key: Key(
+                                  'btn_replace_orphan_ingredient_${ing.id}'),
+                              style: TextButton.styleFrom(
+                                backgroundColor: AppColors.costRed,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12),
+                              ),
+                              onPressed: () =>
+                                  _showReplaceOrphanIngredientDialog(ing),
+                              icon: const Icon(Icons.swap_horiz, size: 16),
+                              label: const Text(
+                                'Asignar Sustituto',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.circle,
+                        size: 8, color: AppColors.primaryCaramel),
+                    title: Text(
+                      ing.ingredientName,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline,
-                          size: 20, color: AppColors.costRed),
-                      onPressed: () {
-                        setState(() => _ingredients.remove(ing));
-                      },
+                    subtitle: Text(
+                      '${ing.quantity.toStringAsFixed(2)} ${ing.unit}'
+                      '${ing.notes != null ? ' • ${ing.notes}' : ''}',
                     ),
-                  ],
-                ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '\$${ing.calculateItemCost().toStringAsFixed(4)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textEspresso,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline,
+                              size: 20, color: AppColors.costRed),
+                          onPressed: () {
+                            setState(() {
+                              _ingredients.remove(ing);
+                              _syncLifecycleStatusAfterOrphanResolution();
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
 
@@ -1667,6 +2163,77 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                 separatorBuilder: (_, __) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final pack = _packaging[index];
+                  final isOrphaned = _isPackagingOrphaned(pack);
+                  if (isOrphaned) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.warning_amber_rounded,
+                                  color: AppColors.costRed, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      pack.packagingName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.costRed,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${pack.pieceQuantity} pz • Eliminado del catálogo',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.costRed,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline,
+                                    size: 20, color: AppColors.costRed),
+                                onPressed: () {
+                                  setState(() {
+                                    _packaging.removeAt(index);
+                                    _syncLifecycleStatusAfterOrphanResolution();
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          SizedBox(
+                            height: 40,
+                            child: TextButton.icon(
+                              key: Key(
+                                  'btn_replace_orphan_packaging_${pack.id}'),
+                              style: TextButton.styleFrom(
+                                backgroundColor: AppColors.costRed,
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: () =>
+                                  _showReplaceOrphanPackagingDialog(pack),
+                              icon: const Icon(Icons.swap_horiz, size: 16),
+                              label: const Text(
+                                'Asignar Sustituto',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
                   return ListTile(
                     dense: true,
                     title: Text(
@@ -1690,7 +2257,10 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                           icon: const Icon(Icons.delete_outline,
                               size: 20, color: AppColors.costRed),
                           onPressed: () {
-                            setState(() => _packaging.removeAt(index));
+                            setState(() {
+                              _packaging.removeAt(index);
+                              _syncLifecycleStatusAfterOrphanResolution();
+                            });
                           },
                         ),
                       ],
@@ -1745,6 +2315,56 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
         key: const Key('recipe_form_costing_tab_list'),
         padding: const EdgeInsets.all(16),
         children: [
+          if (_isRecipeIncomplete) ...[
+            Card(
+              key: const Key('incomplete_pricing_disabled_card'),
+              color: AppColors.costRedLight,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: AppColors.costRed.withValues(alpha: 0.5),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.block_outlined,
+                          color: AppColors.costRed,
+                          size: 22,
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Precio de Venta Sugerido Deshabilitado (BR-FRC-03)',
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.costRed,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _incompleteBannerMessage,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textEspresso,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
           // Visual Cost Distribution (Progress bar & legend)
           CostDistributionWidget(
             key: const Key('cost_distribution_widget'),
@@ -1941,33 +2561,34 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
           ),
           const SizedBox(height: 16),
 
-          // Dual Suggested Pricing & Margin Strategy Card (JEF-16)
-          DualPricingCard(
-            key: const Key('recipe_form_dual_pricing_card'),
-            totalProductionCost: breakdown.totalProductionCost,
-            yieldPortions: breakdown.yieldPortions,
-            currencySymbol: config.currencySymbol,
-            initialStrategy: PricingStrategy(
-              mode: _pricingMode,
-              targetProfitMargin:
-                  PreciseDecimal.tryParse(_marginController.text.trim()) ??
-                      PreciseDecimal.fromDouble(
-                          AppConstants.defaultTargetProfitMargin),
-              roundingRule: _roundingRule,
-              customBatchPrice: _customBatchPrice,
-              customPortionPrice: _customPortionPrice,
+          // Dual Suggested Pricing & Margin Strategy Card (JEF-16 / BR-FRC-03)
+          if (!_isRecipeIncomplete)
+            DualPricingCard(
+              key: const Key('recipe_form_dual_pricing_card'),
+              totalProductionCost: breakdown.totalProductionCost,
+              yieldPortions: breakdown.yieldPortions,
+              currencySymbol: config.currencySymbol,
+              initialStrategy: PricingStrategy(
+                mode: _pricingMode,
+                targetProfitMargin:
+                    PreciseDecimal.tryParse(_marginController.text.trim()) ??
+                        PreciseDecimal.fromDouble(
+                            AppConstants.defaultTargetProfitMargin),
+                roundingRule: _roundingRule,
+                customBatchPrice: _customBatchPrice,
+                customPortionPrice: _customPortionPrice,
+              ),
+              onStrategyChanged: (newStrategy) {
+                setState(() {
+                  _pricingMode = newStrategy.mode;
+                  _roundingRule = newStrategy.roundingRule;
+                  _customBatchPrice = newStrategy.customBatchPrice;
+                  _customPortionPrice = newStrategy.customPortionPrice;
+                  _marginController.text =
+                      newStrategy.targetProfitMargin.toStringAsFixed(0);
+                });
+              },
             ),
-            onStrategyChanged: (newStrategy) {
-              setState(() {
-                _pricingMode = newStrategy.mode;
-                _roundingRule = newStrategy.roundingRule;
-                _customBatchPrice = newStrategy.customBatchPrice;
-                _customPortionPrice = newStrategy.customPortionPrice;
-                _marginController.text =
-                    newStrategy.targetProfitMargin.toStringAsFixed(0);
-              });
-            },
-          ),
           const SizedBox(height: 16),
         ],
       ),

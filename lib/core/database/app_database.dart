@@ -21,6 +21,26 @@ class AppDatabase {
     }
   }
 
+  /// Opens a fresh isolated in-memory SQLite database with the full schema and
+  /// default seed data, and registers it as the active `AppDatabase.instance`.
+  static Future<Database> openInMemoryTestDatabase() async {
+    final db = await openDatabase(
+      inMemoryDatabasePath,
+      version: AppConstants.databaseVersion,
+      singleInstance: false,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON;');
+      },
+      onCreate: (db, version) async {
+        await _createSchema(db);
+        await _insertDefaultConfiguration(db);
+        await _seedDefaultDensities(db);
+      },
+    );
+    setMockDatabase(db);
+    return db;
+  }
+
   /// Get the active database instance, initializing it if necessary.
   Future<Database> get database async {
     if (_db != null && _db!.isOpen) return _db!;
@@ -48,6 +68,9 @@ class AppDatabase {
         // Migration hooks for future versions
         await _createSchema(db);
         await _seedDefaultDensities(db);
+      },
+      onOpen: (db) async {
+        await _createSchema(db);
       },
     );
   }
@@ -99,6 +122,18 @@ class AppDatabase {
     try {
       await db.execute(
         'ALTER TABLE ${DatabaseTables.tableReceta} ADD COLUMN precio_venta_manual_porcion TEXT;',
+      );
+    } catch (_) {}
+
+    try {
+      await db.execute(
+        'ALTER TABLE ${DatabaseTables.tableInsumo} ADD COLUMN eliminado INTEGER NOT NULL DEFAULT 0;',
+      );
+    } catch (_) {}
+
+    try {
+      await db.execute(
+        'ALTER TABLE ${DatabaseTables.tableEmpaque} ADD COLUMN eliminado INTEGER NOT NULL DEFAULT 0;',
       );
     } catch (_) {}
   }

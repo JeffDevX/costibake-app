@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/database_tables.dart';
 import '../../../../core/errors/exceptions.dart';
@@ -24,6 +25,7 @@ class PackagingLocalDataSourceImpl implements PackagingLocalDataSource {
     final db = await appDatabase.database;
     final results = await db.query(
       DatabaseTables.tableEmpaque,
+      where: 'COALESCE(eliminado, 0) = 0',
       orderBy: 'nombre COLLATE NOCASE ASC',
     );
     return results.map(PackagingModel.fromMap).toList();
@@ -34,7 +36,7 @@ class PackagingLocalDataSourceImpl implements PackagingLocalDataSource {
     final db = await appDatabase.database;
     final results = await db.query(
       DatabaseTables.tableEmpaque,
-      where: 'id = ?',
+      where: 'id = ? AND COALESCE(eliminado, 0) = 0',
       whereArgs: [id],
       limit: 1,
     );
@@ -45,7 +47,7 @@ class PackagingLocalDataSourceImpl implements PackagingLocalDataSource {
   @override
   Future<List<PackagingModel>> search(String query, {String? category}) async {
     final db = await appDatabase.database;
-    String whereClause = 'nombre LIKE ?';
+    String whereClause = 'COALESCE(eliminado, 0) = 0 AND nombre LIKE ?';
     List<dynamic> whereArgs = ['%$query%'];
 
     if (category != null && category.isNotEmpty) {
@@ -65,9 +67,11 @@ class PackagingLocalDataSourceImpl implements PackagingLocalDataSource {
   @override
   Future<void> save(PackagingModel model) async {
     final db = await appDatabase.database;
+    final map = Map<String, dynamic>.from(model.toMap());
+    map['eliminado'] = 0;
     await db.insert(
       DatabaseTables.tableEmpaque,
-      model.toMap(),
+      map,
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
@@ -97,11 +101,36 @@ class PackagingLocalDataSourceImpl implements PackagingLocalDataSource {
 
     await appDatabase.runTransaction((txn) async {
       if (force && affectedRecipes.isNotEmpty) {
-        await txn.delete(
-          DatabaseTables.tableRecetaEmpaque,
-          where: 'empaque_id = ?',
-          whereArgs: [id],
-        );
+        final nowIso = DateTime.now().toIso8601String();
+
+        // 1. Mark affected recipes as INCOMPLETA_REQUIERE_REVISION (RF-SYS-23, BR-FRC-02)
+        const updateRecipesQuery = '''
+          UPDATE ${DatabaseTables.tableReceta}
+          SET estado = ?, fecha_actualizacion = ?
+          WHERE id IN (
+            SELECT receta_id FROM ${DatabaseTables.tableRecetaEmpaque} WHERE empaque_id = ?
+          )
+        ''';
+        await txn.rawUpdate(updateRecipesQuery, [
+          AppConstants.recipeStatusIncomplete,
+          nowIso,
+          id,
+        ]);
+
+        // 2. Soft-delete packaging in EMPAQUE while preserving historical reference in RECETA_EMPAQUE
+        const softDeletePackagingQuery = '''
+          UPDATE ${DatabaseTables.tableEmpaque}
+          SET eliminado = 1,
+              nombre = CASE
+                WHEN nombre LIKE '%[ELIMINADO]' THEN nombre
+                ELSE nombre || ' [ELIMINADO]'
+              END,
+              costo_unitario = '0.0000',
+              fecha_actualizacion = ?
+          WHERE id = ?
+        ''';
+        await txn.rawUpdate(softDeletePackagingQuery, [nowIso, id]);
+        return;
       }
 
       await txn.delete(

@@ -14,6 +14,7 @@ class RecipeIngredientItemModel extends RecipeIngredientItem {
     super.densityGPerMl,
     super.baseUnit,
     super.notes,
+    super.isDeleted = false,
   });
 
   factory RecipeIngredientItemModel.fromEntity(RecipeIngredientItem entity) {
@@ -29,15 +30,18 @@ class RecipeIngredientItemModel extends RecipeIngredientItem {
       densityGPerMl: entity.densityGPerMl,
       baseUnit: entity.baseUnit,
       notes: entity.notes,
+      isDeleted: entity.isDeleted,
     );
   }
 
   factory RecipeIngredientItemModel.fromMap(Map<String, dynamic> map) {
+    final deletedFlag = (map['insumo_eliminado'] as int? ?? 0) == 1;
+    final rawName = (map['insumo_nombre'] as String?) ?? '';
     return RecipeIngredientItemModel(
       id: map['id'] as String,
       recipeId: map['receta_id'] as String,
       ingredientId: map['insumo_id'] as String,
-      ingredientName: (map['insumo_nombre'] as String?) ?? '',
+      ingredientName: rawName.isEmpty && deletedFlag ? '[ELIMINADO]' : rawName,
       quantity: PreciseDecimal.fromString(map['cantidad'] as String),
       unit: map['unidad'] as String,
       section: (map['seccion'] as String?) ?? 'Base',
@@ -49,6 +53,7 @@ class RecipeIngredientItemModel extends RecipeIngredientItem {
           : null,
       baseUnit: map['unidad_minima'] as String?,
       notes: map['notas'] as String?,
+      isDeleted: deletedFlag || rawName.toUpperCase().contains('[ELIMINADO]'),
     );
   }
 
@@ -126,6 +131,7 @@ class RecipePackagingItemModel extends RecipePackagingItem {
     required super.pieceQuantity,
     required super.unitCost,
     super.notes,
+    super.isDeleted = false,
   });
 
   factory RecipePackagingItemModel.fromEntity(RecipePackagingItem entity) {
@@ -137,20 +143,24 @@ class RecipePackagingItemModel extends RecipePackagingItem {
       pieceQuantity: entity.pieceQuantity,
       unitCost: entity.unitCost,
       notes: entity.notes,
+      isDeleted: entity.isDeleted,
     );
   }
 
   factory RecipePackagingItemModel.fromMap(Map<String, dynamic> map) {
+    final deletedFlag = (map['empaque_eliminado'] as int? ?? 0) == 1;
+    final rawName = (map['empaque_nombre'] as String?) ?? '';
     return RecipePackagingItemModel(
       id: map['id'] as String,
       recipeId: map['receta_id'] as String,
       packagingId: map['empaque_id'] as String,
-      packagingName: (map['empaque_nombre'] as String?) ?? '',
+      packagingName: rawName.isEmpty && deletedFlag ? '[ELIMINADO]' : rawName,
       pieceQuantity: map['cantidad_piezas'] as int,
       unitCost: map['costo_unitario'] != null
           ? PreciseDecimal.fromString(map['costo_unitario'] as String)
           : PreciseDecimal.zero,
       notes: map['notas'] as String?,
+      isDeleted: deletedFlag || rawName.toUpperCase().contains('[ELIMINADO]'),
     );
   }
 
