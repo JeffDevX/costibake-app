@@ -10,6 +10,7 @@ import '../bloc/recipes_event.dart';
 import '../bloc/recipes_state.dart';
 import 'recipe_form_screen.dart';
 import 'recipe_scaling_screen.dart';
+import '../widgets/recipe_pdf_export_dialog.dart';
 
 class RecipesScreen extends StatefulWidget {
   const RecipesScreen({super.key});
@@ -450,38 +451,75 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                         const SizedBox(height: 8),
                                         Align(
                                           alignment: Alignment.centerRight,
-                                          child: TextButton.icon(
-                                            key: Key('btn_scale_recipe_${recipe.id}'),
-                                            style: TextButton.styleFrom(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 10,
-                                                vertical: 4,
-                                              ),
-                                              minimumSize: const Size(48, 36),
-                                              tapTargetSize:
-                                                  MaterialTapTargetSize.shrinkWrap,
-                                            ),
-                                            onPressed: () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      RecipeScalingScreen(
-                                                          recipe: recipe),
+                                          child: Wrap(
+                                            alignment: WrapAlignment.end,
+                                            spacing: 6,
+                                            runSpacing: 4,
+                                            children: [
+                                              TextButton.icon(
+                                                key: Key('btn_export_pdf_${recipe.id}'),
+                                                style: TextButton.styleFrom(
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
+                                                  ),
+                                                  minimumSize: const Size(48, 36),
+                                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                                 ),
-                                              );
-                                            },
-                                            icon: const Icon(
-                                              Icons.aspect_ratio_outlined,
-                                              size: 16,
-                                            ),
-                                            label: const Text(
-                                              'Escalar Receta / Molde',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
+                                                onPressed: () {
+                                                  RecipePdfExportDialog.show(
+                                                    context,
+                                                    recipe: recipe,
+                                                  );
+                                                },
+                                                icon: const Icon(
+                                                  Icons.picture_as_pdf_outlined,
+                                                  size: 16,
+                                                  color: AppColors.primaryCaramel,
+                                                ),
+                                                label: const Text(
+                                                  'Exportar PDF',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppColors.primaryCaramel,
+                                                  ),
+                                                ),
                                               ),
-                                            ),
+                                              TextButton.icon(
+                                                key: Key('btn_scale_recipe_${recipe.id}'),
+                                                style: TextButton.styleFrom(
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 4,
+                                                  ),
+                                                  minimumSize: const Size(48, 36),
+                                                  tapTargetSize:
+                                                      MaterialTapTargetSize.shrinkWrap,
+                                                ),
+                                                onPressed: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          RecipeScalingScreen(
+                                                              recipe: recipe),
+                                                    ),
+                                                  );
+                                                },
+                                                icon: const Icon(
+                                                  Icons.aspect_ratio_outlined,
+                                                  size: 16,
+                                                ),
+                                                label: const Text(
+                                                  'Escalar Receta / Molde',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],
