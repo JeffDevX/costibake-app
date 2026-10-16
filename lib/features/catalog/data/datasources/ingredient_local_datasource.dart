@@ -25,6 +25,7 @@ class IngredientLocalDataSourceImpl implements IngredientLocalDataSource {
     final db = await appDatabase.database;
     final results = await db.query(
       DatabaseTables.tableInsumo,
+      where: 'COALESCE(eliminado, 0) = 0',
       orderBy: 'nombre COLLATE NOCASE ASC',
     );
     return results.map(IngredientModel.fromMap).toList();
@@ -35,7 +36,7 @@ class IngredientLocalDataSourceImpl implements IngredientLocalDataSource {
     final db = await appDatabase.database;
     final results = await db.query(
       DatabaseTables.tableInsumo,
-      where: 'id = ?',
+      where: 'id = ? AND COALESCE(eliminado, 0) = 0',
       whereArgs: [id],
       limit: 1,
     );
@@ -46,7 +47,7 @@ class IngredientLocalDataSourceImpl implements IngredientLocalDataSource {
   @override
   Future<List<IngredientModel>> search(String query, {String? category}) async {
     final db = await appDatabase.database;
-    String whereClause = 'nombre LIKE ?';
+    String whereClause = 'COALESCE(eliminado, 0) = 0 AND nombre LIKE ?';
     List<dynamic> whereArgs = ['%$query%'];
 
     if (category != null && category.isNotEmpty) {
@@ -66,9 +67,11 @@ class IngredientLocalDataSourceImpl implements IngredientLocalDataSource {
   @override
   Future<void> save(IngredientModel model) async {
     final db = await appDatabase.database;
+    final map = Map<String, dynamic>.from(model.toMap());
+    map['eliminado'] = 0;
     await db.insert(
       DatabaseTables.tableInsumo,
-      model.toMap(),
+      map,
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
@@ -99,26 +102,37 @@ class IngredientLocalDataSourceImpl implements IngredientLocalDataSource {
 
     await appDatabase.runTransaction((txn) async {
       if (force && affectedRecipes.isNotEmpty) {
-        // Mark affected recipes as incomplete requiring review (JEF-18)
-        const updateQuery = '''
+        final nowIso = DateTime.now().toIso8601String();
+
+        // 1. Mark affected recipes as INCOMPLETA_REQUIERE_REVISION (RF-SYS-23, BR-FRC-02)
+        const updateRecipesQuery = '''
           UPDATE ${DatabaseTables.tableReceta}
           SET estado = ?, fecha_actualizacion = ?
           WHERE id IN (
             SELECT receta_id FROM ${DatabaseTables.tableRecetaInsumo} WHERE insumo_id = ?
           )
         ''';
-        await txn.rawUpdate(updateQuery, [
+        await txn.rawUpdate(updateRecipesQuery, [
           AppConstants.recipeStatusIncomplete,
-          DateTime.now().toIso8601String(),
+          nowIso,
           id,
         ]);
 
-        // Remove recipe-ingredient relations safely
-        await txn.delete(
-          DatabaseTables.tableRecetaInsumo,
-          where: 'insumo_id = ?',
-          whereArgs: [id],
-        );
+        // 2. Soft-delete the ingredient in INSUMO while preserving the historical
+        // line in RECETA_INSUMO with "[ELIMINADO]" and 0 cost (BR-FRC-02, RF-SYS-23)
+        const softDeleteIngredientQuery = '''
+          UPDATE ${DatabaseTables.tableInsumo}
+          SET eliminado = 1,
+              nombre = CASE
+                WHEN nombre LIKE '%[ELIMINADO]' THEN nombre
+                ELSE nombre || ' [ELIMINADO]'
+              END,
+              costo_unitario_minimo = '0.0000',
+              fecha_actualizacion = ?
+          WHERE id = ?
+        ''';
+        await txn.rawUpdate(softDeleteIngredientQuery, [nowIso, id]);
+        return;
       }
 
       await txn.delete(

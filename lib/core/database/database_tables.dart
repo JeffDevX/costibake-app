@@ -22,6 +22,7 @@ class DatabaseTables {
       unidad_minima TEXT NOT NULL,
       densidad_g_ml TEXT,
       notas TEXT,
+      eliminado INTEGER NOT NULL DEFAULT 0,
       fecha_actualizacion TEXT NOT NULL
     );
   ''';
@@ -35,6 +36,7 @@ class DatabaseTables {
       unidades_por_paquete INTEGER NOT NULL,
       costo_unitario TEXT NOT NULL,
       notas TEXT,
+      eliminado INTEGER NOT NULL DEFAULT 0,
       fecha_actualizacion TEXT NOT NULL
     );
   ''';

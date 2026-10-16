@@ -52,8 +52,21 @@ class Recipe extends Equatable {
   });
 
   bool get isActive => status == AppConstants.recipeStatusActive;
-  bool get isIncomplete => status == AppConstants.recipeStatusIncomplete;
+  bool get isIncomplete =>
+      status == AppConstants.recipeStatusIncomplete || hasOrphanedItems;
   int get totalTimeMinutes => prepTimeMinutes + bakeTimeMinutes;
+
+  /// Ingredients in this recipe whose catalog item was force-deleted (`BR-FRC-02`).
+  List<RecipeIngredientItem> get orphanedIngredients =>
+      ingredients.where((i) => i.isOrphaned).toList();
+
+  /// Packaging items in this recipe whose catalog item was force-deleted (`BR-FRC-02`).
+  List<RecipePackagingItem> get orphanedPackaging =>
+      packaging.where((p) => p.isOrphaned).toList();
+
+  /// Whether this recipe has any orphaned ingredients or packaging items (`RF-SYS-23`).
+  bool get hasOrphanedItems =>
+      orphanedIngredients.isNotEmpty || orphanedPackaging.isNotEmpty;
 
   /// Sum of all direct ingredient costs in this recipe (RF-SYS-11, BR-REC-03).
   PreciseDecimal get totalIngredientsCost {
