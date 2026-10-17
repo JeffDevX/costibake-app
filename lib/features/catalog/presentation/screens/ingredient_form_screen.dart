@@ -378,6 +378,12 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
       appBar: AppBar(
         title: Text(isEditing ? 'Editar Insumo' : 'Registrar Insumo a Granel'),
         actions: [
+          IconButton(
+            key: const Key('btn_ingredient_hide_keyboard'),
+            icon: const Icon(Icons.keyboard_hide),
+            tooltip: 'Ocultar Teclado',
+            onPressed: () => FocusScope.of(context).unfocus(),
+          ),
           if (isEditing)
             IconButton(
               key: const Key('btn_delete_ingredient_form'),
@@ -392,6 +398,7 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
         child: Form(
           key: _formKey,
           child: ListView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             children: [
               // Banner de Normalización en Tiempo Real
@@ -401,6 +408,7 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
               // Nombre
               TextFormField(
                 controller: _nameController,
+                textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(
                   labelText: 'Nombre del Insumo *',
                   hintText: 'Ej. Harina de Trigo Especial, Leche Entera',
@@ -469,6 +477,7 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
+                    textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(
                       labelText: 'Cantidad *',
                       hintText: 'Ej. 50, 1, 30',
@@ -525,6 +534,7 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+              textInputAction: TextInputAction.next,
               decoration: const InputDecoration(
                 labelText: 'Costo Total Pagado de Adquisición *',
                 hintText: 'Ej. 45.00, 1.50, 6.00',
@@ -554,6 +564,7 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+              textInputAction: TextInputAction.next,
               decoration: const InputDecoration(
                 labelText: 'Porcentaje de Merma (%)',
                 hintText: 'Ej. 0, 5.0, 10.0',
@@ -682,6 +693,7 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
                       controller: _densityController,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
+                      textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
                         labelText: 'Densidad del Insumo (g/ml)',
                         hintText: 'Ej. 0.5208 (125 g/taza), 0.8333, 1.0000',
@@ -716,6 +728,8 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
             TextFormField(
               controller: _notesController,
               maxLines: 2,
+              textInputAction: TextInputAction.done,
+              onEditingComplete: () => FocusScope.of(context).unfocus(),
               decoration: const InputDecoration(
                 labelText: 'Notas u Observaciones (Opcional)',
                 hintText: 'Marca comercial, proveedor o lote',

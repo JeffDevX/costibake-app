@@ -62,6 +62,8 @@ class CostingScreen extends StatelessWidget {
                   return ResponsiveCenter(
                     maxWidth: AppBreakpoints.maxContentWidth,
                     child: ListView.builder(
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
                       padding: const EdgeInsets.all(16),
                       itemCount: recipes.length,
                       itemBuilder: (context, index) {

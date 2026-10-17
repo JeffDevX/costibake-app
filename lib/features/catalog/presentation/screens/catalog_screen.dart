@@ -489,6 +489,7 @@ class _CatalogScreenState extends State<CatalogScreen>
     return ResponsiveCenter(
       maxWidth: AppBreakpoints.maxContentWidth,
       child: ListView.builder(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.only(
           top: 8,
           left: 16,
@@ -656,6 +657,7 @@ class _CatalogScreenState extends State<CatalogScreen>
     return ResponsiveCenter(
       maxWidth: AppBreakpoints.maxContentWidth,
       child: ListView.builder(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.only(
           top: 8,
           left: 16,
