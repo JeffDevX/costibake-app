@@ -13,7 +13,12 @@ import '../bloc/settings_state.dart';
 /// Screen for viewing and updating global business parameters:
 /// Labor hourly rate and overhead indirect cost percentage (JEF-6, SUC-07, BR-CFG-01..04).
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final VoidCallback? onBackToHome;
+
+  const SettingsScreen({
+    super.key,
+    this.onBackToHome,
+  });
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -112,9 +117,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final canPop = Navigator.canPop(context);
+    final showBack = canPop || widget.onBackToHome != null;
+
     return Scaffold(
       appBar: AppBar(
+        leading: showBack
+            ? IconButton(
+                key: const Key('btn_settings_back'),
+                icon: const Icon(Icons.arrow_back),
+                tooltip: canPop ? 'Atrás' : 'Volver a Catálogo',
+                onPressed: () {
+                  FocusScope.of(context).unfocus();
+                  if (canPop) {
+                    Navigator.pop(context);
+                  } else {
+                    widget.onBackToHome?.call();
+                  }
+                },
+              )
+            : null,
         title: const Text('Configuración del Taller'),
+        actions: [
+          IconButton(
+            key: const Key('btn_settings_hide_keyboard'),
+            icon: const Icon(Icons.keyboard_hide),
+            tooltip: 'Ocultar Teclado',
+            onPressed: () => FocusScope.of(context).unfocus(),
+          ),
+        ],
       ),
       body: BlocConsumer<SettingsBloc, SettingsState>(
         listener: (context, state) {
@@ -157,6 +188,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _populateControllers(config);
 
             return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.all(16),
               child: ResponsiveCenter(
                 maxWidth: AppBreakpoints.maxFormWidth,
@@ -254,6 +286,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextFormField(
               key: const Key('business_name_field'),
               controller: _nameController,
+              textInputAction: TextInputAction.next,
               decoration: const InputDecoration(
                 labelText: 'Nombre del Taller / Obrador *',
                 hintText: 'Ej. Sweet Boutique Repostería',
@@ -270,6 +303,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextFormField(
               key: const Key('currency_symbol_field'),
               controller: _currencyController,
+              textInputAction: TextInputAction.next,
               decoration: const InputDecoration(
                 labelText: 'Símbolo de Moneda *',
                 hintText: 'Ej. \$, €, S/, MXN\$',
@@ -327,6 +361,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               controller: _laborRateController,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
+              textInputAction: TextInputAction.next,
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
               ],
@@ -360,6 +395,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               controller: _overheadController,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
+              textInputAction: TextInputAction.done,
+              onEditingComplete: () => FocusScope.of(context).unfocus(),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
               ],

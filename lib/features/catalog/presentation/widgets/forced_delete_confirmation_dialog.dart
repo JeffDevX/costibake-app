@@ -155,6 +155,7 @@ class _ForcedDeleteConfirmationDialogState
             TextField(
               key: const Key('input_confirm_force_delete'),
               controller: _confirmController,
+              textInputAction: TextInputAction.done,
               textCapitalization: TextCapitalization.characters,
               decoration: InputDecoration(
                 hintText: requiredConfirmationWord,

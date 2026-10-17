@@ -233,5 +233,51 @@ void main() {
       final RenderBox renderBox = tester.renderObject(centerFinder);
       expect(renderBox.size.width, lessThanOrEqualTo(1024));
     });
+
+    testWidgets('Renders back button when onBackToHome is provided and triggers callback', (tester) async {
+      await ensureLoaded(tester);
+      bool backCalled = false;
+      await tester.pumpWidget(buildTestable(SettingsScreen(onBackToHome: () => backCalled = true)));
+      await tester.pump();
+
+      final backBtn = find.byKey(const Key('btn_settings_back'));
+      expect(backBtn, findsOneWidget);
+      await tester.tap(backBtn);
+      await tester.pump();
+
+      expect(backCalled, isTrue);
+    });
+
+    testWidgets('Renders hide keyboard button in AppBar and unfocuses active field', (tester) async {
+      await ensureLoaded(tester);
+      await tester.pumpWidget(buildTestable(const SettingsScreen()));
+      await tester.pump();
+
+      final nameField = find.byKey(const Key('business_name_field'));
+      await tester.tap(nameField);
+      await tester.pump();
+      expect(FocusManager.instance.primaryFocus?.hasFocus, isTrue);
+
+      final hideBtn = find.byKey(const Key('btn_settings_hide_keyboard'));
+      expect(hideBtn, findsOneWidget);
+      await tester.tap(hideBtn);
+      await tester.pump();
+
+      final editable = tester.widget<EditableText>(
+        find.descendant(of: nameField, matching: find.byType(EditableText)),
+      );
+      expect(editable.focusNode.hasFocus, isFalse);
+    });
+
+    testWidgets('SingleChildScrollView has onDrag keyboardDismissBehavior', (tester) async {
+      await ensureLoaded(tester);
+      await tester.pumpWidget(buildTestable(const SettingsScreen()));
+      await tester.pump();
+
+      final scrollFinder = find.byType(SingleChildScrollView);
+      expect(scrollFinder, findsOneWidget);
+      final scrollWidget = tester.widget<SingleChildScrollView>(scrollFinder);
+      expect(scrollWidget.keyboardDismissBehavior, equals(ScrollViewKeyboardDismissBehavior.onDrag));
+    });
   });
 }

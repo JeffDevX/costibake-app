@@ -226,6 +226,12 @@ class _PackagingFormScreenState extends State<PackagingFormScreen> {
       appBar: AppBar(
         title: Text(isEditing ? 'Editar Empaque' : 'Registrar Empaque'),
         actions: [
+          IconButton(
+            key: const Key('btn_packaging_hide_keyboard'),
+            icon: const Icon(Icons.keyboard_hide),
+            tooltip: 'Ocultar Teclado',
+            onPressed: () => FocusScope.of(context).unfocus(),
+          ),
           if (isEditing)
             IconButton(
               key: const Key('btn_delete_packaging_form'),
@@ -240,6 +246,7 @@ class _PackagingFormScreenState extends State<PackagingFormScreen> {
         child: Form(
           key: _formKey,
           child: ListView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             children: [
               // Banner de Cálculo Unitario en Tiempo Real (BR-EMP-01, BR-EMP-04)
@@ -249,6 +256,7 @@ class _PackagingFormScreenState extends State<PackagingFormScreen> {
               // Nombre del Empaque
               TextFormField(
                 controller: _nameController,
+                textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(
                   labelText: 'Nombre del Empaque / Descartable *',
                   hintText: 'Ej. Caja para Pastel 10", Domo Cupcakes x6',
@@ -291,6 +299,7 @@ class _PackagingFormScreenState extends State<PackagingFormScreen> {
                   final costField = TextFormField(
                     controller: _costController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(
                       labelText: 'Costo Total del Paquete *',
                       hintText: 'Ej. 25.00, 3.50',
@@ -316,6 +325,7 @@ class _PackagingFormScreenState extends State<PackagingFormScreen> {
                   final unitsField = TextFormField(
                     controller: _unitsController,
                     keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(
                       labelText: 'Unidades por Paquete *',
                       hintText: 'Ej. 50, 100, 12',
@@ -375,6 +385,8 @@ class _PackagingFormScreenState extends State<PackagingFormScreen> {
               TextFormField(
                 controller: _notesController,
                 maxLines: 2,
+                textInputAction: TextInputAction.done,
+                onEditingComplete: () => FocusScope.of(context).unfocus(),
                 decoration: const InputDecoration(
                   labelText: 'Dimensiones / Notas (Opcional)',
                   hintText: 'Ej. Compatible molde 10", base MDF dorada 3mm, marca X',
