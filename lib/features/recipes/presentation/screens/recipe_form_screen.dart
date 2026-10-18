@@ -1258,6 +1258,12 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
       appBar: AppBar(
         title: Text(isEditing ? 'Editar Receta' : 'Formular Nueva Receta'),
         actions: [
+          IconButton(
+            key: const Key('btn_recipe_hide_keyboard'),
+            icon: const Icon(Icons.keyboard_hide),
+            tooltip: 'Ocultar Teclado',
+            onPressed: () => FocusScope.of(context).unfocus(),
+          ),
           if (isEditing && widget.recipeToEdit != null) ...[
             IconButton(
               key: const Key('btn_export_recipe_pdf'),
@@ -1486,6 +1492,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
     return ResponsiveCenter(
       maxWidth: AppBreakpoints.maxContentWidth,
       child: ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.all(16),
         children: [
           if (_validationAlert != null) ...[
@@ -1763,6 +1770,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
     return ResponsiveCenter(
       maxWidth: AppBreakpoints.maxContentWidth,
       child: ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.all(16),
         children: [
           if (_validationAlert != null) ...[
@@ -2137,6 +2145,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
     return ResponsiveCenter(
       maxWidth: AppBreakpoints.maxContentWidth,
       child: ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.all(16),
         children: [
           SizedBox(
@@ -2336,6 +2345,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
       maxWidth: AppBreakpoints.maxContentWidth,
       child: ListView(
         key: const Key('recipe_form_costing_tab_list'),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.all(16),
         children: [
           if (_isRecipeIncomplete) ...[

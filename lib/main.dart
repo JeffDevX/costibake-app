@@ -17,6 +17,9 @@ import 'features/settings/data/repositories/settings_repository_impl.dart';
 import 'features/settings/domain/repositories/settings_repository.dart';
 import 'features/settings/presentation/bloc/settings_bloc.dart';
 import 'features/settings/presentation/bloc/settings_event.dart';
+import 'core/services/ai_config_service.dart';
+import 'features/recipes/data/services/gemini_ai_recipe_extractor.dart';
+import 'features/recipes/domain/services/ai_recipe_extractor.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +33,14 @@ class CostiBakeApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiRepositoryProvider(
       providers: [
+        RepositoryProvider<AiConfigService>(
+          create: (_) => AiConfigService(),
+        ),
+        RepositoryProvider<AiRecipeExtractor>(
+          create: (ctx) => GeminiAiRecipeExtractor(
+            aiConfigService: ctx.read<AiConfigService>(),
+          ),
+        ),
         RepositoryProvider<IngredientRepository>(
           create: (_) => IngredientRepositoryImpl(),
         ),
@@ -66,6 +77,13 @@ class CostiBakeApp extends StatelessWidget {
           title: AppConstants.appName,
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
+          builder: (context, child) {
+            return GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+              child: child,
+            );
+          },
           home: const HomeScreen(),
         ),
       ),

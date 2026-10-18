@@ -222,6 +222,8 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                 ),
                               ))
                         : ListView.builder(
+                            keyboardDismissBehavior:
+                                ScrollViewKeyboardDismissBehavior.onDrag,
                             padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
                             itemCount: recipes.length,
                             itemBuilder: (context, index) {

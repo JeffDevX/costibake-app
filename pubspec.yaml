@@ -36,12 +36,30 @@ dependencies:
   printing: ^5.14.3
   image: 4.2.0
 
+  # AI & Vision
+  google_generative_ai: ^0.4.6
+
+  # Photo & Document Pickers
+  image_picker: ^1.1.2
+  file_picker: ^8.1.4
+  archive: ^3.6.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
   sqflite_common_ffi: ^2.3.3
   test: ^1.25.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/
+

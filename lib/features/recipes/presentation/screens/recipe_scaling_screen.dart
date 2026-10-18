@@ -407,6 +407,14 @@ class _RecipeScalingScreenState extends State<RecipeScalingScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Escalar Receta y Molde'),
+        actions: [
+          IconButton(
+            key: const Key('btn_scaling_hide_keyboard'),
+            icon: const Icon(Icons.keyboard_hide),
+            tooltip: 'Ocultar Teclado',
+            onPressed: () => FocusScope.of(context).unfocus(),
+          ),
+        ],
       ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -453,6 +461,7 @@ class _RecipeScalingScreenState extends State<RecipeScalingScreen> {
       body: ResponsiveCenter(
         maxWidth: AppBreakpoints.maxContentWidth,
         child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

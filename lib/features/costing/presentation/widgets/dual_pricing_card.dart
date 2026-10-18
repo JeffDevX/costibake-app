@@ -303,6 +303,8 @@ class _DualPricingCardState extends State<DualPricingCard> {
                     controller: _marginController,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
+                    textInputAction: TextInputAction.done,
+                    onEditingComplete: () => FocusScope.of(context).unfocus(),
                     textAlign: TextAlign.end,
                     style: const TextStyle(
                       fontSize: 14,
@@ -543,6 +545,8 @@ class _DualPricingCardState extends State<DualPricingCard> {
                   controller: _customBatchPriceController,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
+                  textInputAction: TextInputAction.done,
+                  onEditingComplete: () => FocusScope.of(context).unfocus(),
                   style: const TextStyle(
                     fontSize: 24, // Minimum 24sp bold requirement
                     fontWeight: FontWeight.bold,
@@ -742,6 +746,8 @@ class _DualPricingCardState extends State<DualPricingCard> {
                   controller: _customPortionPriceController,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
+                  textInputAction: TextInputAction.done,
+                  onEditingComplete: () => FocusScope.of(context).unfocus(),
                   style: const TextStyle(
                     fontSize: 24, // Minimum 24sp bold requirement
                     fontWeight: FontWeight.bold,
