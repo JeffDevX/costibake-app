@@ -145,5 +145,13 @@ void main() {
       expect(result.isSuccessful, isFalse);
       expect(result.errorMessage, contains('No se ha proporcionado ninguna clave'));
     });
+
+    test('defaultCandidateModels contains active Gemini Flash models', () {
+      expect(AiConfigService.defaultCandidateModels, contains('gemini-3.8-flash'));
+      expect(AiConfigService.defaultCandidateModels, contains('gemini-3.6-flash'));
+      expect(AiConfigService.defaultCandidateModels, contains('gemini-3.5-flash'));
+      expect(AiConfigService.defaultCandidateModels, contains('gemini-flash-lite-latest'));
+      expect(AiConfigService.defaultCandidateModels, isNot(contains('gemini-1.5-flash')));
+    });
   });
 }

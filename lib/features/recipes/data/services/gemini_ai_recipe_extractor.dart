@@ -15,19 +15,29 @@ typedef ContentGenerator = Future<String> Function({
   required String apiKey,
 });
 
-/// Implementation of [AiRecipeExtractor] powered by Google Gemini 1.5 Flash.
-/// Supports extracting structured recipe data from Photos (JPEG/PNG/WEBP), PDFs, and DOCX documents.
+/// Implementation of [AiRecipeExtractor] powered by Google Gemini Flash.
+/// Supports extracting structured recipe data from Photos (JPEG/PNG/WEBP), PDFs, and DOCX documents
+/// with an automatic multi-model fallback chain across active Gemini Flash models.
 class GeminiAiRecipeExtractor implements AiRecipeExtractor {
   final AiConfigService _aiConfigService;
   final ContentGenerator? _contentGenerator;
+  final List<String> _candidateModels;
 
-  static const String _defaultModelName = 'gemini-1.5-flash';
+  /// Resilient list of Gemini Flash models tried in order of capability and stability.
+  static const List<String> defaultCandidateModels = [
+    'gemini-3.8-flash',
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-flash-lite-latest',
+  ];
 
   GeminiAiRecipeExtractor({
     required AiConfigService aiConfigService,
     ContentGenerator? contentGenerator,
+    List<String>? candidateModels,
   })  : _aiConfigService = aiConfigService,
-        _contentGenerator = contentGenerator;
+        _contentGenerator = contentGenerator,
+        _candidateModels = candidateModels ?? defaultCandidateModels;
 
   static final Schema recipeExtractionSchema = Schema.object(
     properties: {
@@ -279,23 +289,47 @@ REGLAS DE EXTRACCIÓN:
           apiKey: apiKey,
         );
       } else {
-        final model = GenerativeModel(
-          model: _defaultModelName,
-          apiKey: apiKey,
-          generationConfig: GenerationConfig(
-            responseMimeType: 'application/json',
-            responseSchema: recipeExtractionSchema,
-            temperature: 0.1,
-          ),
-        );
-        final response = await model.generateContent(contents);
-        final text = response.text;
-        if (text == null || text.trim().isEmpty) {
-          throw const AiExtractionException(
-            'El modelo Gemini no devolvió respuesta para la receta analizada.',
+        Object? lastError;
+        String? successfulText;
+
+        for (final modelName in _candidateModels) {
+          try {
+            final model = GenerativeModel(
+              model: modelName,
+              apiKey: apiKey,
+              generationConfig: GenerationConfig(
+                responseMimeType: 'application/json',
+                responseSchema: recipeExtractionSchema,
+                temperature: 0.1,
+              ),
+            );
+            final response = await model.generateContent(contents);
+            final text = response.text;
+            if (text != null && text.trim().isNotEmpty) {
+              successfulText = text;
+              break;
+            }
+          } catch (e) {
+            lastError = e;
+            final errStr = e.toString();
+            if (errStr.contains('API_KEY_INVALID') ||
+                errStr.contains('API key not valid')) {
+              throw AiExtractionException(
+                'La clave de API ingresada no es válida o ha sido revocada por Google.',
+                e,
+              );
+            }
+            // Continue to the next candidate model (e.g., deprecated 404, temporary 503 spike, etc.)
+          }
+        }
+
+        if (successfulText == null) {
+          throw AiExtractionException(
+            'Error de comunicación con el servicio de IA Gemini: $lastError',
+            lastError,
           );
         }
-        responseText = text;
+        responseText = successfulText;
       }
     } catch (e) {
       if (e is AiConfigException || e is AiExtractionException) rethrow;

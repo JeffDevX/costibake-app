@@ -125,6 +125,14 @@ class AiConfigService {
     return key != null && key.isNotEmpty;
   }
 
+  /// Resilient candidate Flash models in descending order of availability and stability.
+  static const List<String> defaultCandidateModels = [
+    'gemini-3.8-flash',
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-flash-lite-latest',
+  ];
+
   /// Verifies connectivity and key validity against Google Gemini API using a lightweight token check.
   Future<AiKeyTestResult> testApiKeyConnection([String? candidateKey]) async {
     final key = (candidateKey != null && candidateKey.trim().isNotEmpty)
@@ -137,32 +145,38 @@ class AiConfigService {
       );
     }
 
-    try {
-      final model = GenerativeModel(
-        model: 'gemini-1.5-flash',
-        apiKey: key,
-      );
+    Object? lastError;
+    for (final modelName in defaultCandidateModels) {
+      try {
+        final model = GenerativeModel(
+          model: modelName,
+          apiKey: key,
+        );
 
-      final response = await model.countTokens([Content.text('ping')]);
-      if (response.totalTokens >= 0) {
-        return AiKeyTestResult.success();
-      } else {
-        return AiKeyTestResult.failure('Respuesta inesperada de Gemini.');
+        final response = await model.countTokens([Content.text('ping')]);
+        if (response.totalTokens >= 0) {
+          return AiKeyTestResult.success();
+        }
+      } catch (e) {
+        lastError = e;
+        final errStr = e.toString();
+        if (errStr.contains('API_KEY_INVALID') ||
+            errStr.contains('API key not valid')) {
+          return AiKeyTestResult.failure(
+            'La clave de API ingresada no es válida o ha sido revocada por Google.',
+          );
+        }
+        // If 404/503, try next candidate model in the chain
       }
-    } catch (e) {
-      final errStr = e.toString();
-      if (errStr.contains('API_KEY_INVALID') ||
-          errStr.contains('API key not valid')) {
-        return AiKeyTestResult.failure(
-          'La clave de API ingresada no es válida o ha sido revocada por Google.',
-        );
-      } else if (errStr.contains('429') ||
-          errStr.contains('RESOURCE_EXHAUSTED')) {
-        return AiKeyTestResult.failure(
-          'Límite de solicitudes momentáneo alcanzado (Nivel Gratuito). La clave es válida, pero debes esperar unos segundos.',
-        );
-      }
-      return AiKeyTestResult.failure('Error de conexión con Gemini: $errStr');
     }
+
+    final errStr = lastError?.toString() ?? 'Error desconocido';
+    if (errStr.contains('429') ||
+        errStr.contains('RESOURCE_EXHAUSTED')) {
+      return AiKeyTestResult.failure(
+        'Límite de solicitudes momentáneo alcanzado (Nivel Gratuito). La clave es válida, pero debes esperar unos segundos.',
+      );
+    }
+    return AiKeyTestResult.failure('Error de conexión con Gemini: $errStr');
   }
 }
