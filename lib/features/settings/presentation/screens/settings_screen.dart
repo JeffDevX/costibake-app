@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_breakpoints.dart';
+import '../../../../core/services/ai_config_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/precise_decimal.dart';
 import '../../../../core/widgets/responsive_center.dart';
+import '../../../backup/presentation/widgets/backup_restore_card.dart';
 import '../../domain/entities/business_config.dart';
 import '../bloc/settings_bloc.dart';
 import '../bloc/settings_event.dart';
@@ -203,11 +205,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                       // Sección 2: Parámetros Financieros (BR-CFG-01, BR-CFG-02)
                       _buildFinancialCard(),
-                      const SizedBox(height: 16),
-
-                      // Sección 3: Almacenamiento Offline & Persistencia
-                      _buildStorageCard(),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       // Botón de Guardado (Kitchen Ergonomics >= 48px)
                       SizedBox(
@@ -244,6 +242,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 24),
+
+                      // Sección 3: Inteligencia Artificial Gemini (API Key)
+                      const _AiConfigCard(),
+                      const SizedBox(height: 24),
+
+                      // Sección 4: Copia de Seguridad y Restauración (JEF-32)
+                      const BackupRestoreCard(),
                       const SizedBox(height: 40),
                     ],
                   ),
@@ -428,20 +434,103 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildStorageCard() {
-    return const Card(
+}
+
+class _AiConfigCard extends StatefulWidget {
+  const _AiConfigCard();
+
+  @override
+  State<_AiConfigCard> createState() => _AiConfigCardState();
+}
+
+class _AiConfigCardState extends State<_AiConfigCard> {
+  final _apiKeyController = TextEditingController();
+  bool _obscureKey = true;
+  bool _isSaving = false;
+  bool _hasActiveKey = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadKeyStatus();
+  }
+
+  @override
+  void dispose() {
+    _apiKeyController.dispose();
+    super.dispose();
+  }
+
+  AiConfigService _getAiService() {
+    try {
+      return context.read<AiConfigService>();
+    } catch (_) {
+      return AiConfigService();
+    }
+  }
+
+  Future<void> _loadKeyStatus() async {
+    final aiService = _getAiService();
+    final hasKey = await aiService.hasValidKey();
+    final key = await aiService.getApiKey();
+    if (mounted) {
+      setState(() {
+        _hasActiveKey = hasKey;
+        if (key != null && key.isNotEmpty) {
+          _apiKeyController.text = key;
+        }
+      });
+    }
+  }
+
+  Future<void> _saveKey() async {
+    setState(() => _isSaving = true);
+    final aiService = _getAiService();
+    try {
+      await aiService.saveApiKey(_apiKeyController.text.trim());
+      final hasKey = await aiService.hasValidKey();
+      if (mounted) {
+        setState(() => _hasActiveKey = hasKey);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              hasKey
+                  ? 'Clave de IA configurada correctamente'
+                  : 'Clave eliminada',
+            ),
+            backgroundColor: AppColors.profitGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al guardar clave: $e'),
+            backgroundColor: AppColors.costRed,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.security, color: AppColors.profitGreen),
-                SizedBox(width: 8),
-                Expanded(
+                const Icon(Icons.auto_awesome, color: AppColors.primaryCaramel),
+                const SizedBox(width: 8),
+                const Expanded(
                   child: Text(
-                    'Almacenamiento y Seguridad',
+                    'Inteligencia Artificial (Gemini 1.5)',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -449,15 +538,82 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                 ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _hasActiveKey
+                        ? AppColors.profitGreenLight
+                        : AppColors.warningAmberLight,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _hasActiveKey ? Icons.check_circle : Icons.info_outline,
+                        size: 14,
+                        color: _hasActiveKey ? AppColors.profitGreen : AppColors.warningAmber,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _hasActiveKey ? 'Activa' : 'Sin Clave',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: _hasActiveKey ? AppColors.profitGreen : AppColors.warningAmber,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
-            SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.storage, color: AppColors.primaryCaramel),
-              title: Text('Modo Offline-First Activo'),
-              subtitle: Text(
-                'Tus parámetros se almacenan localmente en SQLite y persisten incluso sin conexión a internet.',
+            const SizedBox(height: 8),
+            Text(
+              'Permite el escaneo inteligente de recetas manuscritas, fotos, documentos PDF y Word para costearlas al instante.',
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.3),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              key: const Key('gemini_api_key_field'),
+              controller: _apiKeyController,
+              obscureText: _obscureKey,
+              decoration: InputDecoration(
+                labelText: 'API Key de Gemini',
+                hintText: 'AIzaSy...',
+                prefixIcon: const Icon(Icons.key),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureKey ? Icons.visibility : Icons.visibility_off),
+                  onPressed: () => setState(() => _obscureKey = !_obscureKey),
+                ),
+                helperText: 'Obtén tu clave gratuita en aistudio.google.com',
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 48,
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                key: const Key('btn_save_ai_key'),
+                onPressed: _isSaving ? null : _saveKey,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primaryCaramel,
+                  side: const BorderSide(color: AppColors.primaryCaramel),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check),
+                label: const Text(
+                  'Guardar Clave de IA',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
