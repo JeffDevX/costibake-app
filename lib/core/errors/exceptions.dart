@@ -120,3 +120,25 @@ class NegativeCostComponentException implements Exception {
       'NegativeCostComponentException: $message ($componentName)';
 }
 
+/// Thrown when AI service configuration (e.g., API key) is missing or invalid.
+class AiConfigException implements Exception {
+  final String message;
+
+  const AiConfigException(this.message);
+
+  @override
+  String toString() => 'AiConfigException: $message';
+}
+
+/// Thrown when AI extraction fails due to network, model, or parsing errors.
+class AiExtractionException implements Exception {
+  final String message;
+  final dynamic originalError;
+
+  const AiExtractionException(this.message, [this.originalError]);
+
+  @override
+  String toString() =>
+      'AiExtractionException: $message${originalError != null ? ' ($originalError)' : ''}';
+}
+

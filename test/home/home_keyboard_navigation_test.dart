@@ -43,7 +43,7 @@ class _FakeIngredientRepo implements IngredientRepository {
 
 class _FakePackagingRepo implements PackagingRepository {
   @override
-  Future<List<Packaging>> getAllPackagings() async => [];
+  Future<List<Packaging>> getAllPackaging() async => [];
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

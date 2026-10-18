@@ -36,6 +36,14 @@ dependencies:
   printing: ^5.14.3
   image: 4.2.0
 
+  # AI & Vision
+  google_generative_ai: ^0.4.6
+
+  # Photo & Document Pickers
+  image_picker: ^1.1.2
+  file_picker: ^8.1.4
+  archive: ^3.6.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
