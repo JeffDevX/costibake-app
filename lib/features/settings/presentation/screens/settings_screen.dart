@@ -447,7 +447,11 @@ class _AiConfigCardState extends State<_AiConfigCard> {
   final _apiKeyController = TextEditingController();
   bool _obscureKey = true;
   bool _isSaving = false;
-  bool _hasActiveKey = false;
+  bool _isTesting = false;
+  bool _hasBundledKey = false;
+  AiKeySource _source = AiKeySource.none;
+  String? _testFeedback;
+  bool? _testSuccess;
 
   @override
   void initState() {
@@ -471,11 +475,14 @@ class _AiConfigCardState extends State<_AiConfigCard> {
 
   Future<void> _loadKeyStatus() async {
     final aiService = _getAiService();
-    final hasKey = await aiService.hasValidKey();
+    final source = await aiService.getApiKeySource();
     final key = await aiService.getApiKey();
+    final hasBundled = aiService.hasBundledKey;
+
     if (mounted) {
       setState(() {
-        _hasActiveKey = hasKey;
+        _source = source;
+        _hasBundledKey = hasBundled;
         if (key != null && key.isNotEmpty) {
           _apiKeyController.text = key;
         }
@@ -488,14 +495,13 @@ class _AiConfigCardState extends State<_AiConfigCard> {
     final aiService = _getAiService();
     try {
       await aiService.saveApiKey(_apiKeyController.text.trim());
-      final hasKey = await aiService.hasValidKey();
+      await _loadKeyStatus();
       if (mounted) {
-        setState(() => _hasActiveKey = hasKey);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              hasKey
-                  ? 'Clave de IA configurada correctamente'
+              _source == AiKeySource.userCustom
+                  ? 'Clave de IA personalizada guardada con éxito'
                   : 'Clave eliminada',
             ),
             backgroundColor: AppColors.profitGreen,
@@ -516,8 +522,60 @@ class _AiConfigCardState extends State<_AiConfigCard> {
     }
   }
 
+  Future<void> _resetToBundledDefault() async {
+    final aiService = _getAiService();
+    await aiService.deleteApiKey();
+    await _loadKeyStatus();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Se restableció a la clave predeterminada de la aplicación.'),
+          backgroundColor: AppColors.profitGreen,
+        ),
+      );
+    }
+  }
+
+  Future<void> _testConnection() async {
+    setState(() {
+      _isTesting = true;
+      _testFeedback = null;
+      _testSuccess = null;
+    });
+
+    final aiService = _getAiService();
+    final result = await aiService.testApiKeyConnection(_apiKeyController.text.trim());
+
+    if (mounted) {
+      setState(() {
+        _isTesting = false;
+        _testSuccess = result.isSuccessful;
+        _testFeedback = result.isSuccessful
+            ? '¡Conexión exitosa con Google Gemini! La clave es válida y está lista para escanear recetas.'
+            : (result.errorMessage ?? 'Error desconocido al validar la clave.');
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    String badgeText = 'Sin Clave';
+    Color badgeBg = AppColors.warningAmberLight;
+    Color badgeFg = AppColors.warningAmber;
+    IconData badgeIcon = Icons.info_outline;
+
+    if (_source == AiKeySource.bundledDefault) {
+      badgeText = 'Clave de Fábrica (Modo Esposa)';
+      badgeBg = AppColors.profitGreenLight;
+      badgeFg = AppColors.profitGreen;
+      badgeIcon = Icons.verified_user;
+    } else if (_source == AiKeySource.userCustom) {
+      badgeText = 'Clave Personalizada';
+      badgeBg = const Color(0xFFF3E5F5); // light purple
+      badgeFg = const Color(0xFF7B1FA2); // dark purple
+      badgeIcon = Icons.tune;
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -541,26 +599,20 @@ class _AiConfigCardState extends State<_AiConfigCard> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _hasActiveKey
-                        ? AppColors.profitGreenLight
-                        : AppColors.warningAmberLight,
+                    color: badgeBg,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        _hasActiveKey ? Icons.check_circle : Icons.info_outline,
-                        size: 14,
-                        color: _hasActiveKey ? AppColors.profitGreen : AppColors.warningAmber,
-                      ),
+                      Icon(badgeIcon, size: 14, color: badgeFg),
                       const SizedBox(width: 4),
                       Text(
-                        _hasActiveKey ? 'Activa' : 'Sin Clave',
+                        badgeText,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: _hasActiveKey ? AppColors.profitGreen : AppColors.warningAmber,
+                          color: badgeFg,
                         ),
                       ),
                     ],
@@ -570,16 +622,40 @@ class _AiConfigCardState extends State<_AiConfigCard> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Permite el escaneo inteligente de recetas manuscritas, fotos, documentos PDF y Word para costearlas al instante.',
+              'Digitaliza automáticamente fotos de libretas manuscritas, documentos PDF y Word para costear recetas al instante.',
               style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.3),
             ),
+            const SizedBox(height: 10),
+
+            // Nivel Gratuito Banner
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.butterCream,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.borderWarm),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.shield_outlined, color: AppColors.profitGreen, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Nivel Gratuito de Google AI Studio: Costo \$0.00 siempre (hasta 1,500 recetas al día sin cargos).',
+                      style: TextStyle(fontSize: 12, color: AppColors.textEspresso),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 12),
+
             TextFormField(
               key: const Key('gemini_api_key_field'),
               controller: _apiKeyController,
               obscureText: _obscureKey,
               decoration: InputDecoration(
-                labelText: 'API Key de Gemini',
+                labelText: 'API Key de Google Gemini',
                 hintText: 'AIzaSy...',
                 prefixIcon: const Icon(Icons.key),
                 suffixIcon: IconButton(
@@ -589,33 +665,135 @@ class _AiConfigCardState extends State<_AiConfigCard> {
                 helperText: 'Obtén tu clave gratuita en aistudio.google.com',
               ),
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 48,
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                key: const Key('btn_save_ai_key'),
-                onPressed: _isSaving ? null : _saveKey,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primaryCaramel,
-                  side: const BorderSide(color: AppColors.primaryCaramel),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+
+            if (_testFeedback != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _testSuccess == true
+                      ? AppColors.profitGreenLight
+                      : AppColors.costRedLight,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: _testSuccess == true
+                        ? AppColors.profitGreen
+                        : AppColors.costRed,
                   ),
                 ),
-                icon: _isSaving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.check),
-                label: const Text(
-                  'Guardar Clave de IA',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      _testSuccess == true ? Icons.check_circle : Icons.error_outline,
+                      color: _testSuccess == true ? AppColors.profitGreen : AppColors.costRed,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _testFeedback!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _testSuccess == true
+                              ? AppColors.profitGreen
+                              : AppColors.costRed,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            ],
+
+            const SizedBox(height: 14),
+
+            // Botones de Acción (Kitchen Ergonomics >= 48px)
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      key: const Key('btn_save_ai_key'),
+                      onPressed: _isSaving ? null : _saveKey,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryCaramel,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      icon: _isSaving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.save, size: 18),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Guardar Clave',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      key: const Key('btn_test_ai_key'),
+                      onPressed: _isTesting ? null : _testConnection,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.textEspresso,
+                        side: const BorderSide(color: AppColors.primaryCaramel),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      icon: _isTesting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.wifi_tethering, size: 18),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Probar Conexión',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
+
+            if (_source == AiKeySource.userCustom && _hasBundledKey) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  key: const Key('btn_reset_ai_key'),
+                  onPressed: _resetToBundledDefault,
+                  icon: const Icon(Icons.restore, size: 16),
+                  label: const Text(
+                    'Restablecer a Clave de Fábrica (Modo Esposa)',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

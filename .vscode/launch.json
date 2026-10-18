@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "CostiBake (Debug con IA)",
+      "request": "launch",
+      "type": "dart",
+      "toolArgs": ["--dart-define-from-file", "config.json"]
+    },
+    {
+      "name": "CostiBake (Debug estándar)",
+      "request": "launch",
+      "type": "dart"
+    },
+    {
+      "name": "CostiBake (Release con IA)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release",
+      "toolArgs": ["--dart-define-from-file", "config.json"]
+    }
+  ]
+}

@@ -50,6 +50,8 @@ app.*.symbols
 *.env.*
 !.env.example
 *.local
+config.json
+*.local.json
 
 # Android
 android/.gradle/
