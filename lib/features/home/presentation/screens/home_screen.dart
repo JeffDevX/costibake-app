@@ -4,6 +4,7 @@ import 'package:costibake_app/core/constants/app_breakpoints.dart';
 import 'package:costibake_app/core/theme/app_colors.dart';
 import 'package:costibake_app/features/catalog/presentation/screens/catalog_screen.dart';
 import 'package:costibake_app/features/costing/presentation/screens/costing_screen.dart';
+import 'package:costibake_app/features/quotes/presentation/screens/quotes_screen.dart';
 import 'package:costibake_app/features/recipes/presentation/screens/recipes_screen.dart';
 import 'package:costibake_app/features/settings/presentation/screens/settings_screen.dart';
 
@@ -21,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const CatalogScreen(),
     const RecipesScreen(),
     const CostingScreen(),
+    const QuotesScreen(),
     SettingsScreen(onBackToHome: () => _navigateToTab(0)),
   ];
 
@@ -118,6 +120,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         label: Text('Costeo'),
                       ),
                       NavigationRailDestination(
+                        icon: Icon(Icons.request_quote_outlined),
+                        selectedIcon: Icon(Icons.request_quote),
+                        label: Text('Cotizar'),
+                      ),
+                      NavigationRailDestination(
                         icon: Icon(Icons.settings_outlined),
                         selectedIcon: Icon(Icons.settings),
                         label: Text('Ajustes'),
@@ -167,6 +174,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icon(Icons.calculate_outlined),
                   activeIcon: Icon(Icons.calculate),
                   label: 'Costeo',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.request_quote_outlined),
+                  activeIcon: Icon(Icons.request_quote),
+                  label: 'Cotizar',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.settings_outlined),

@@ -8,6 +8,8 @@ class DatabaseTables {
   static const String tableRecetaSubreceta = 'RECETA_SUBRECETA';
   static const String tableConfiguracionNegocio = 'CONFIGURACION_NEGOCIO';
   static const String tableMatrizDensidad = 'MATRIZ_DENSIDAD';
+  static const String tableCotizacion = 'COTIZACION';
+  static const String tableCotizacionItem = 'COTIZACION_ITEM';
 
   static const String createTableInsumo = '''
     CREATE TABLE IF NOT EXISTS $tableInsumo (
@@ -127,6 +129,36 @@ class DatabaseTables {
     );
   ''';
 
+  static const String createTableCotizacion = '''
+    CREATE TABLE IF NOT EXISTS $tableCotizacion (
+      id TEXT PRIMARY KEY NOT NULL,
+      cliente_nombre TEXT NOT NULL,
+      cliente_telefono TEXT,
+      evento_notas TEXT,
+      fecha_entrega TEXT NOT NULL,
+      total_descuento TEXT NOT NULL DEFAULT '0.00',
+      monto_anticipo TEXT NOT NULL DEFAULT '0.00',
+      estado TEXT NOT NULL DEFAULT 'PENDIENTE',
+      fecha_creacion TEXT NOT NULL,
+      fecha_actualizacion TEXT NOT NULL
+    );
+  ''';
+
+  static const String createTableCotizacionItem = '''
+    CREATE TABLE IF NOT EXISTS $tableCotizacionItem (
+      id TEXT PRIMARY KEY NOT NULL,
+      cotizacion_id TEXT NOT NULL,
+      receta_id TEXT,
+      concepto TEXT NOT NULL,
+      tipo TEXT NOT NULL DEFAULT 'RECETA',
+      cantidad TEXT NOT NULL DEFAULT '1.00',
+      precio_unitario TEXT NOT NULL,
+      notas TEXT,
+      FOREIGN KEY (cotizacion_id) REFERENCES $tableCotizacion(id) ON DELETE CASCADE,
+      FOREIGN KEY (receta_id) REFERENCES $tableReceta(id) ON DELETE SET NULL
+    );
+  ''';
+
   // Indexes for high-performance offline queries and joins
   static const List<String> createIndexes = [
     'CREATE INDEX IF NOT EXISTS idx_insumo_nombre ON $tableInsumo(nombre);',
@@ -140,6 +172,12 @@ class DatabaseTables {
     'CREATE INDEX IF NOT EXISTS idx_receta_subreceta_padre ON $tableRecetaSubreceta(receta_padre_id);',
     'CREATE INDEX IF NOT EXISTS idx_receta_subreceta_hija ON $tableRecetaSubreceta(receta_hija_id);',
     'CREATE INDEX IF NOT EXISTS idx_matriz_densidad_clave ON $tableMatrizDensidad(nombre_clave);',
+  ];
+
+  static const List<String> createIndexesCotizacion = [
+    'CREATE INDEX IF NOT EXISTS idx_cotizacion_fecha_entrega ON $tableCotizacion(fecha_entrega);',
+    'CREATE INDEX IF NOT EXISTS idx_cotizacion_cliente ON $tableCotizacion(cliente_nombre);',
+    'CREATE INDEX IF NOT EXISTS idx_cotizacion_item_cotizacion ON $tableCotizacionItem(cotizacion_id);',
   ];
 }
 

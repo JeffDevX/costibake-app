@@ -20,6 +20,10 @@ import 'features/settings/presentation/bloc/settings_event.dart';
 import 'core/services/ai_config_service.dart';
 import 'features/recipes/data/services/gemini_ai_recipe_extractor.dart';
 import 'features/recipes/domain/services/ai_recipe_extractor.dart';
+import 'features/quotes/data/repositories/quote_repository_impl.dart';
+import 'features/quotes/domain/repositories/quote_repository.dart';
+import 'features/quotes/presentation/bloc/quotes_bloc.dart';
+import 'features/quotes/presentation/bloc/quotes_event.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,6 +57,9 @@ class CostiBakeApp extends StatelessWidget {
         RepositoryProvider<SettingsRepository>(
           create: (_) => SettingsRepositoryImpl(),
         ),
+        RepositoryProvider<QuoteRepository>(
+          create: (_) => QuoteRepositoryImpl(),
+        ),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -71,6 +78,11 @@ class CostiBakeApp extends StatelessWidget {
             create: (ctx) => SettingsBloc(
               settingsRepository: ctx.read<SettingsRepository>(),
             )..add(const LoadSettings()),
+          ),
+          BlocProvider<QuotesBloc>(
+            create: (ctx) => QuotesBloc(
+              quoteRepository: ctx.read<QuoteRepository>(),
+            )..add(const LoadQuotes()),
           ),
         ],
         child: MaterialApp(
