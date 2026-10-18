@@ -336,5 +336,14 @@ void main() {
         throwsA(isA<AiExtractionException>()),
       );
     });
+
+    test('defaultCandidateModels includes current active flash models without deprecated 1.5-flash', () {
+      expect(GeminiAiRecipeExtractor.defaultCandidateModels, contains('gemini-3.8-flash'));
+      expect(GeminiAiRecipeExtractor.defaultCandidateModels, contains('gemini-3.6-flash'));
+      expect(GeminiAiRecipeExtractor.defaultCandidateModels, contains('gemini-3.5-flash'));
+      expect(GeminiAiRecipeExtractor.defaultCandidateModels, contains('gemini-flash-lite-latest'));
+      expect(GeminiAiRecipeExtractor.defaultCandidateModels, isNot(contains('gemini-1.5-flash')));
+    });
   });
 }
+
