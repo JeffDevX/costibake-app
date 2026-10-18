@@ -18,6 +18,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:costibake_app/features/catalog/domain/entities/ingredient.dart';
 import 'package:costibake_app/features/catalog/domain/entities/packaging.dart';
 import 'package:costibake_app/features/recipes/domain/entities/recipe.dart';
+import 'package:costibake_app/features/quotes/domain/entities/quote.dart';
+import 'package:costibake_app/features/quotes/domain/repositories/quote_repository.dart';
+import 'package:costibake_app/features/quotes/presentation/bloc/quotes_bloc.dart';
+import 'package:costibake_app/features/quotes/presentation/bloc/quotes_event.dart';
 
 class _FakeSettingsRepo implements SettingsRepository {
   @override
@@ -55,6 +59,13 @@ class _FakeRecipeRepo implements RecipeRepository {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _FakeQuoteRepo implements QuoteRepository {
+  @override
+  Future<List<Quote>> getAllQuotes() async => [];
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
   Widget buildApp() {
     return MultiBlocProvider(
@@ -73,6 +84,11 @@ void main() {
           create: (_) => RecipesBloc(
             recipeRepository: _FakeRecipeRepo(),
           )..add(const LoadRecipes()),
+        ),
+        BlocProvider<QuotesBloc>(
+          create: (_) => QuotesBloc(
+            quoteRepository: _FakeQuoteRepo(),
+          )..add(const LoadQuotes()),
         ),
       ],
       child: MaterialApp(

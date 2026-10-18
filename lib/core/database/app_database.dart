@@ -84,8 +84,13 @@ class AppDatabase {
     await db.execute(DatabaseTables.createTableRecetaEmpaque);
     await db.execute(DatabaseTables.createTableConfiguracionNegocio);
     await db.execute(DatabaseTables.createTableMatrizDensidad);
+    await db.execute(DatabaseTables.createTableCotizacion);
+    await db.execute(DatabaseTables.createTableCotizacionItem);
 
     for (final indexSql in DatabaseTables.createIndexes) {
+      await db.execute(indexSql);
+    }
+    for (final indexSql in DatabaseTables.createIndexesCotizacion) {
       await db.execute(indexSql);
     }
 

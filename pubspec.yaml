@@ -44,6 +44,9 @@ dependencies:
   file_picker: ^8.1.4
   archive: ^3.6.1
 
+  # Communications & Sharing
+  url_launcher: ^6.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
