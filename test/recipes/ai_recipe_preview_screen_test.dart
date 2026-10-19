@@ -172,9 +172,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Enter 400g instead of 200g
-      final qtyInput = find.widgetWithText(TextField, 'Nueva Cantidad (g)');
+      final qtyInput = find.byKey(const Key('field_ai_edit_ingredient_qty'));
       await tester.enterText(qtyInput, '400');
-      await tester.tap(find.text('Actualizar'));
+      await tester.tap(find.byKey(const Key('btn_save_ai_edit_ingredient')));
       await tester.pumpAndSettle();
 
       // New cost:

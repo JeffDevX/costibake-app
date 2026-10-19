@@ -276,5 +276,69 @@ void main() {
       expect(matchRect, isNotNull);
       expect(matchRect!.id, equals('rect_20x30'));
     });
+
+    test('Calculates exact container scale factor between counts and oz capacities (RF-SYS-13)', () {
+      // 12 envases de 4 oz a 24 envases de 4 oz -> 2.0000
+      final factorDoubleCount = ScalingEngine.calculateContainerScaleFactor(
+        originCount: 12,
+        originCapacityOz: PreciseDecimal.fromInt(4),
+        targetCount: 24,
+        targetCapacityOz: PreciseDecimal.fromInt(4),
+      );
+      expect(factorDoubleCount.toStringAsFixed(4), equals('2.0000'));
+
+      // 12 envases de 4 oz (48 oz total) a 12 envases de 6 oz (72 oz total) -> 1.5000
+      final factorDifferentSize = ScalingEngine.calculateContainerScaleFactor(
+        originCount: 12,
+        originCapacityOz: PreciseDecimal.fromInt(4),
+        targetCount: 12,
+        targetCapacityOz: PreciseDecimal.fromInt(6),
+      );
+      expect(factorDifferentSize.toStringAsFixed(4), equals('1.5000'));
+
+      // 10 envases de 4 oz (40 oz total) a 15 envases de 8 oz (120 oz total) -> 3.0000
+      final factorComplex = ScalingEngine.calculateContainerScaleFactor(
+        originCount: 10,
+        originCapacityOz: PreciseDecimal.fromInt(4),
+        targetCount: 15,
+        targetCapacityOz: PreciseDecimal.fromInt(8),
+      );
+      expect(factorComplex.toStringAsFixed(4), equals('3.0000'));
+
+      expect(
+        () => ScalingEngine.calculateContainerScaleFactor(
+          originCount: 0,
+          originCapacityOz: PreciseDecimal.fromInt(4),
+          targetCount: 10,
+          targetCapacityOz: PreciseDecimal.fromInt(4),
+        ),
+        throwsArgumentError,
+      );
+
+      expect(
+        () => ScalingEngine.calculateContainerScaleFactor(
+          originCount: 12,
+          originCapacityOz: PreciseDecimal.zero,
+          targetCount: 10,
+          targetCapacityOz: PreciseDecimal.fromInt(4),
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('MoldPreset.tryMatchFromRecipe matches individual presets and cupcakes', () {
+      final match4oz = MoldPreset.tryMatchFromRecipe('Individual', 'Vasito 4 oz');
+      expect(match4oz, isNotNull);
+      expect(match4oz!.id, equals('cup_4oz'));
+      expect(match4oz.volumeOz, equals(PreciseDecimal.fromInt(4)));
+
+      final match6oz = MoldPreset.tryMatchFromRecipe('Individual', 'Vasito 6 oz (180 ml)');
+      expect(match6oz, isNotNull);
+      expect(match6oz!.id, equals('cup_6oz'));
+
+      final matchCupcake = MoldPreset.tryMatchFromRecipe('Cupcakes / Muffins', 'Cupcake Estándar');
+      expect(matchCupcake, isNotNull);
+      expect(matchCupcake!.id, equals('cupcake_std'));
+    });
   });
 }

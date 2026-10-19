@@ -202,5 +202,67 @@ void main() {
         );
       },
     );
+
+    testWidgets(
+      'Scales by individual containers (vasitos/envases) reactively',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(400, 800));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final recipe = Recipe(
+          id: 'rec-vasitos',
+          name: 'Carlota de Limón en Vasitos',
+          description: '12 vasitos de 4 oz',
+          yieldPortions: 12,
+          prepTimeMinutes: 30,
+          bakeTimeMinutes: 0,
+          moldType: 'Individual',
+          moldDimension: 'Vasito 4 oz',
+          targetProfitMargin: PreciseDecimal.fromInt(50),
+          pricingMode: PricingMode.markupOnCost,
+          roundingRule: RoundingRule.none,
+          status: AppConstants.recipeStatusActive,
+          createdAt: DateTime(2026, 10, 16),
+          updatedAt: DateTime(2026, 10, 16),
+          ingredients: [
+            RecipeIngredientItem(
+              id: 'item-cookies',
+              recipeId: 'rec-vasitos',
+              ingredientId: 'ing-cookies',
+              ingredientName: 'Galletas María',
+              quantity: PreciseDecimal.fromInt(200),
+              unit: 'g',
+              baseUnit: 'g',
+              section: 'Base',
+              unitCost: PreciseDecimal.fromString('0.01'),
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(buildTestApp(recipe, screenSize: const Size(400, 800)));
+        await tester.pumpAndSettle();
+
+        // Screen detects 'Individual' / 'Vasito 4 oz' and opens in individualContainers mode
+        expect(find.byKey(const Key('scaling_mode_chip_individualContainers')), findsOneWidget);
+        // Default target is 24 envases (24 * 4 / (12 * 4) = 2.0000x)
+        expect(find.text('2.0000x (2.00×)'), findsOneWidget);
+        expect(find.text('Base: 200.00 g → Escalado: 400.00 g'), findsOneWidget);
+
+        // Scroll down to reveal chips
+        await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -450));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('quick_target_container_count_36')));
+        await tester.pumpAndSettle();
+
+        // Scroll back to top to check factor banner
+        await tester.drag(find.byType(SingleChildScrollView), const Offset(0, 450));
+        await tester.pumpAndSettle();
+
+        // 36 * 4 / (12 * 4) = 3.0000x
+        expect(find.text('3.0000x (3.00×)'), findsOneWidget);
+        expect(find.text('Base: 200.00 g → Escalado: 600.00 g'), findsOneWidget);
+      },
+    );
   });
 }

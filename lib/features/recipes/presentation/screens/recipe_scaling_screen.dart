@@ -52,6 +52,14 @@ class _RecipeScalingScreenState extends State<RecipeScalingScreen> {
   late TextEditingController _targetLengthController;
   late TextEditingController _targetWidthController;
 
+  // Individual containers state (Vasitos / Envases de oz)
+  late MoldPreset _originIndividualPreset;
+  late MoldPreset _targetIndividualPreset;
+  late TextEditingController _originContainerCountController;
+  late TextEditingController _targetContainerCountController;
+  late TextEditingController _originCapacityOzController;
+  late TextEditingController _targetCapacityOzController;
+
   // Height variation state (RF-SYS-13)
   bool _useCustomHeight = false;
   late TextEditingController _originHeightController;
@@ -81,6 +89,17 @@ class _RecipeScalingScreenState extends State<RecipeScalingScreen> {
 
   static const List<int> _quickPortions = [6, 8, 12, 16, 20, 25, 30, 50];
 
+  static const List<int> _quickContainerCounts = [
+    6,
+    12,
+    18,
+    24,
+    30,
+    36,
+    48,
+    60,
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -91,12 +110,24 @@ class _RecipeScalingScreenState extends State<RecipeScalingScreen> {
       widget.recipe.moldDimension,
     );
 
-    if (matchedPreset != null &&
+    final isIndividualRecipe = (matchedPreset != null &&
+            matchedPreset.shape == MoldShape.individual) ||
+        widget.recipe.moldType == 'Individual' ||
+        widget.recipe.moldType == 'Cupcakes / Muffins';
+
+    if (isIndividualRecipe) {
+      _scalingMode = ScalingMode.individualContainers;
+    } else if (matchedPreset != null &&
         matchedPreset.shape == MoldShape.rectangular) {
       _scalingMode = ScalingMode.rectangularMold;
-      _originRectPreset = matchedPreset;
     } else {
       _scalingMode = ScalingMode.circularMold;
+    }
+
+    if (matchedPreset != null &&
+        matchedPreset.shape == MoldShape.rectangular) {
+      _originRectPreset = matchedPreset;
+    } else {
       _originRectPreset = MoldPreset.rectangularPresets[1]; // 20x20 cm default
     }
 
@@ -106,6 +137,21 @@ class _RecipeScalingScreenState extends State<RecipeScalingScreen> {
       // Default origin circular preset: 6" (15 cm) or 8" (20 cm)
       _originCircularPreset = MoldPreset.circularPresets[1]; // 6" (15 cm)
     }
+
+    if (matchedPreset != null &&
+        matchedPreset.shape == MoldShape.individual) {
+      _originIndividualPreset = matchedPreset;
+    } else if (widget.recipe.moldType == 'Cupcakes / Muffins') {
+      _originIndividualPreset = MoldPreset.individualPresets.firstWhere(
+        (p) => p.id == 'cupcake_std',
+        orElse: () => MoldPreset.individualPresets[1],
+      );
+    } else {
+      _originIndividualPreset = MoldPreset.individualPresets[1]; // 4 oz default
+    }
+
+    // Default target individual preset: same or next size up
+    _targetIndividualPreset = _originIndividualPreset;
 
     // Default target circular preset: 10" (25 cm) if origin is 6", else 10" or 12"
     _targetCircularPreset = _originCircularPreset.id == 'round_10in'
@@ -136,6 +182,25 @@ class _RecipeScalingScreenState extends State<RecipeScalingScreen> {
       text: _targetRectPreset.widthCm?.toStringAsFixed(0) ?? '20',
     );
 
+    final initialCount =
+        widget.recipe.yieldPortions > 0 ? widget.recipe.yieldPortions : 12;
+    _originContainerCountController = TextEditingController(
+      text: initialCount.toString(),
+    );
+    _targetContainerCountController = TextEditingController(
+      text: (initialCount * 2).toString(),
+    );
+    _originCapacityOzController = TextEditingController(
+      text: _originIndividualPreset.volumeOz != null
+          ? _originIndividualPreset.volumeOz.toString()
+          : '4',
+    );
+    _targetCapacityOzController = TextEditingController(
+      text: _targetIndividualPreset.volumeOz != null
+          ? _targetIndividualPreset.volumeOz.toString()
+          : '4',
+    );
+
     _originHeightController = TextEditingController(text: '5');
     _targetHeightController = TextEditingController(text: '5');
 
@@ -156,6 +221,10 @@ class _RecipeScalingScreenState extends State<RecipeScalingScreen> {
     _originWidthController.dispose();
     _targetLengthController.dispose();
     _targetWidthController.dispose();
+    _originContainerCountController.dispose();
+    _targetContainerCountController.dispose();
+    _originCapacityOzController.dispose();
+    _targetCapacityOzController.dispose();
     _originHeightController.dispose();
     _targetHeightController.dispose();
     _multiplierController.dispose();
@@ -241,6 +310,30 @@ class _RecipeScalingScreenState extends State<RecipeScalingScreen> {
           hTarget: validHeights ? hTarg : null,
         );
 
+      case ScalingMode.individualContainers:
+        final origCount =
+            int.tryParse(_originContainerCountController.text.trim()) ?? 1;
+        final targCount =
+            int.tryParse(_targetContainerCountController.text.trim()) ?? 1;
+        final origOz =
+            PreciseDecimal.tryParse(_originCapacityOzController.text.trim()) ??
+                PreciseDecimal.fromInt(4);
+        final targOz =
+            PreciseDecimal.tryParse(_targetCapacityOzController.text.trim()) ??
+                PreciseDecimal.fromInt(4);
+        if (origCount <= 0 ||
+            targCount <= 0 ||
+            origOz <= PreciseDecimal.zero ||
+            targOz <= PreciseDecimal.zero) {
+          return PreciseDecimal.one;
+        }
+        return ScalingEngine.calculateContainerScaleFactor(
+          originCount: origCount,
+          originCapacityOz: origOz,
+          targetCount: targCount,
+          targetCapacityOz: targOz,
+        );
+
       case ScalingMode.directMultiplier:
         final mult =
             PreciseDecimal.tryParse(_multiplierController.text.trim()) ??
@@ -268,6 +361,8 @@ class _RecipeScalingScreenState extends State<RecipeScalingScreen> {
         return 'Redondo';
       case ScalingMode.rectangularMold:
         return _targetRectPreset.moldTypeLabel;
+      case ScalingMode.individualContainers:
+        return _targetIndividualPreset.moldTypeLabel;
       case ScalingMode.directMultiplier:
       case ScalingMode.targetPortions:
         return widget.recipe.moldType ?? 'Personalizado';
@@ -289,6 +384,10 @@ class _RecipeScalingScreenState extends State<RecipeScalingScreen> {
         final l = _targetLengthController.text.trim();
         final w = _targetWidthController.text.trim();
         return '${w}x$l cm';
+      case ScalingMode.individualContainers:
+        final count = _targetContainerCountController.text.trim();
+        final oz = _targetCapacityOzController.text.trim();
+        return '$count envases ($oz oz c/u)';
       case ScalingMode.directMultiplier:
         return '${_multiplierController.text.trim()}x Lote';
       case ScalingMode.targetPortions:
@@ -301,7 +400,9 @@ class _RecipeScalingScreenState extends State<RecipeScalingScreen> {
     final int? targetPortionsOverride =
         _scalingMode == ScalingMode.targetPortions
             ? int.tryParse(_targetPortionsController.text.trim())
-            : null;
+            : _scalingMode == ScalingMode.individualContainers
+                ? int.tryParse(_targetContainerCountController.text.trim())
+                : null;
     final int? customPrep = !_scaleLaborProportionally
         ? int.tryParse(_prepTimeOverrideController.text.trim())
         : null;
@@ -593,6 +694,8 @@ class _RecipeScalingScreenState extends State<RecipeScalingScreen> {
               _buildCircularMoldControls(),
             if (_scalingMode == ScalingMode.rectangularMold)
               _buildRectangularMoldControls(),
+            if (_scalingMode == ScalingMode.individualContainers)
+              _buildIndividualContainersControls(),
             if (_scalingMode == ScalingMode.directMultiplier)
               _buildDirectMultiplierControls(),
             if (_scalingMode == ScalingMode.targetPortions)
@@ -933,6 +1036,181 @@ class _RecipeScalingScreenState extends State<RecipeScalingScreen> {
             ],
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _buildIndividualContainersControls() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Fórmula Envases: Factor = (Cantidad Destino × Capacidad Destino) / (Cantidad Origen × Capacidad Origen)',
+          style: TextStyle(
+            fontSize: 11,
+            fontStyle: FontStyle.italic,
+            color: AppColors.textMuted,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Origin container preset
+        DropdownButtonFormField<MoldPreset>(
+          key: const Key('dropdown_origin_individual_mold'),
+          initialValue: _originIndividualPreset,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: 'Envase / Vasito Origen (Receta Base)',
+            prefixIcon: Icon(Icons.takeout_dining_outlined),
+          ),
+          items: MoldPreset.individualPresets.map((preset) {
+            return DropdownMenuItem(
+              value: preset,
+              child: Text(
+                preset.name,
+                overflow: TextOverflow.ellipsis,
+              ),
+            );
+          }).toList(),
+          onChanged: (preset) {
+            if (preset != null) {
+              setState(() {
+                _originIndividualPreset = preset;
+                if (preset.volumeOz != null) {
+                  _originCapacityOzController.text =
+                      preset.volumeOz!.toString();
+                }
+              });
+            }
+          },
+        ),
+        const SizedBox(height: 10),
+
+        Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                key: const Key('field_origin_container_count'),
+                controller: _originContainerCountController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Cant. Envases Origen',
+                  suffixText: 'unid.',
+                  isDense: true,
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextFormField(
+                key: const Key('field_origin_capacity_oz'),
+                controller: _originCapacityOzController,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Capacidad Origen (oz)',
+                  suffixText: 'oz',
+                  isDense: true,
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+
+        // Target container preset
+        DropdownButtonFormField<MoldPreset>(
+          key: const Key('dropdown_target_individual_mold'),
+          initialValue: _targetIndividualPreset,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: 'Envase / Vasito Destino (Nuevo Envase)',
+            prefixIcon: Icon(Icons.takeout_dining),
+          ),
+          items: MoldPreset.individualPresets.map((preset) {
+            return DropdownMenuItem(
+              value: preset,
+              child: Text(
+                preset.name,
+                overflow: TextOverflow.ellipsis,
+              ),
+            );
+          }).toList(),
+          onChanged: (preset) {
+            if (preset != null) {
+              setState(() {
+                _targetIndividualPreset = preset;
+                if (preset.volumeOz != null) {
+                  _targetCapacityOzController.text =
+                      preset.volumeOz!.toString();
+                }
+              });
+            }
+          },
+        ),
+        const SizedBox(height: 10),
+
+        Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                key: const Key('field_target_container_count'),
+                controller: _targetContainerCountController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Cant. Envases Destino',
+                  suffixText: 'unid.',
+                  isDense: true,
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextFormField(
+                key: const Key('field_target_capacity_oz'),
+                controller: _targetCapacityOzController,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Capacidad Destino (oz)',
+                  suffixText: 'oz',
+                  isDense: true,
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        // Quick target count chips
+        const Text(
+          'Cantidad rápida de envases destino:',
+          style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: _quickContainerCounts.map((count) {
+            final isSelected =
+                _targetContainerCountController.text.trim() == count.toString();
+            return FilterChip(
+              key: Key('quick_target_container_count_$count'),
+              label: Text('$count un.'),
+              selected: isSelected,
+              selectedColor: AppColors.butterCream,
+              onSelected: (_) {
+                setState(() {
+                  _targetContainerCountController.text = count.toString();
+                });
+              },
+            );
+          }).toList(),
+        ),
       ],
     );
   }

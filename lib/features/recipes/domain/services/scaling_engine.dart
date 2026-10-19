@@ -99,6 +99,32 @@ class ScalingEngine {
         PreciseDecimal.fromInt(originPortions);
   }
 
+  /// Calculates the scale factor between individual container volumes and counts (RF-SYS-13):
+  /// `Factor = (targetCount * targetCapacityOz) / (originCount * originCapacityOz)`
+  static PreciseDecimal calculateContainerScaleFactor({
+    required int originCount,
+    required PreciseDecimal originCapacityOz,
+    required int targetCount,
+    required PreciseDecimal targetCapacityOz,
+  }) {
+    if (originCount <= 0 || targetCount <= 0) {
+      throw ArgumentError(
+        'La cantidad de envases debe ser mayor a cero.',
+      );
+    }
+    if (originCapacityOz <= PreciseDecimal.zero ||
+        targetCapacityOz <= PreciseDecimal.zero) {
+      throw ArgumentError(
+        'La capacidad de los envases debe ser mayor a cero.',
+      );
+    }
+    final originTotalVolume =
+        PreciseDecimal.fromInt(originCount) * originCapacityOz;
+    final targetTotalVolume =
+        PreciseDecimal.fromInt(targetCount) * targetCapacityOz;
+    return targetTotalVolume / originTotalVolume;
+  }
+
   /// Determines whether an ingredient item is measured in indivisible whole units (BR-ESC-03).
   static bool isIndivisibleIngredient(RecipeIngredientItem item) {
     final normUnit = item.unit.trim().toLowerCase();

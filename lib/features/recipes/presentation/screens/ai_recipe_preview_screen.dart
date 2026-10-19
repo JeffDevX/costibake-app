@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/culinary_units.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/precise_decimal.dart';
 import '../../../../core/utils/unit_converter.dart';
@@ -150,54 +151,163 @@ class _AiRecipePreviewScreenState extends State<AiRecipePreviewScreen> {
     return _totalIngredientsCost / PreciseDecimal.fromInt(portions);
   }
 
-  void _editIngredientQuantity(int index) {
+  void _editIngredient(int index) {
     final item = _ingredients[index];
+    final nameController = TextEditingController(text: item.name);
     final qtyController =
         TextEditingController(text: item.quantity.toString());
+    final unitController = TextEditingController(text: item.unit);
+    final sectionController = TextEditingController(text: item.section);
+    final notesController = TextEditingController(text: item.notes ?? '');
+
+    CulinaryUnit? matchedUnit = CulinaryUnit.tryParse(item.unit);
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Ajustar Cantidad: ${item.name}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Unidad detectada: ${item.unit}'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: qtyController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              autofocus: true,
-              decoration: InputDecoration(
-                labelText: 'Nueva Cantidad (${item.unit})',
-                border: const OutlineInputBorder(),
+      builder: (ctx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) {
+          return AlertDialog(
+            key: const Key('dialog_edit_ai_ingredient'),
+            title: Row(
+              children: [
+                const Icon(Icons.edit_note, color: AppColors.primaryCaramel),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Editar Insumo: ${item.name}',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    key: const Key('field_ai_edit_ingredient_name'),
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nombre del Insumo',
+                      prefixIcon: Icon(Icons.egg_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: TextField(
+                          key: const Key('field_ai_edit_ingredient_qty'),
+                          controller: qtyController,
+                          keyboardType:
+                              const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Cantidad',
+                            prefixIcon: Icon(Icons.scale_outlined),
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 3,
+                        child: DropdownButtonFormField<CulinaryUnit>(
+                          key: const Key('dropdown_ai_edit_ingredient_unit'),
+                          initialValue: matchedUnit,
+                          decoration: const InputDecoration(
+                            labelText: 'Unidad',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: CulinaryUnit.values.map((u) {
+                            return DropdownMenuItem(
+                              value: u,
+                              child: Text(u.symbol),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setDialogState(() {
+                                matchedUnit = val;
+                                unitController.text = val.symbol;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    key: const Key('field_ai_edit_ingredient_section'),
+                    controller: sectionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Sección / Componente (ej. Base, Cobertura)',
+                      prefixIcon: Icon(Icons.layers_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    key: const Key('field_ai_edit_ingredient_notes'),
+                    controller: notesController,
+                    decoration: const InputDecoration(
+                      labelText: 'Notas (opcional)',
+                      prefixIcon: Icon(Icons.comment_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final newQty = PreciseDecimal.tryParse(qtyController.text);
-              if (newQty != null && newQty > PreciseDecimal.zero) {
-                setState(() {
-                  _ingredients[index] = item.copyWith(quantity: newQty);
-                });
-                Navigator.pop(ctx);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryCaramel,
-            ),
-            child: const Text('Actualizar',
-                style: TextStyle(color: Colors.white)),
-          ),
-        ],
+            actions: [
+              TextButton(
+                key: const Key('btn_cancel_ai_edit_ingredient'),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton.icon(
+                key: const Key('btn_save_ai_edit_ingredient'),
+                onPressed: () {
+                  final newName = nameController.text.trim();
+                  final newQty = PreciseDecimal.tryParse(qtyController.text);
+                  final newUnit = unitController.text.trim().isEmpty
+                      ? item.unit
+                      : unitController.text.trim();
+                  final newSection = sectionController.text.trim().isEmpty
+                      ? item.section
+                      : sectionController.text.trim();
+                  final newNotes = notesController.text.trim().isEmpty
+                      ? null
+                      : notesController.text.trim();
+
+                  if (newName.isNotEmpty &&
+                      newQty != null &&
+                      newQty > PreciseDecimal.zero) {
+                    setState(() {
+                      _ingredients[index] = item.copyWith(
+                        name: newName,
+                        quantity: newQty,
+                        unit: newUnit,
+                        section: newSection,
+                        notes: newNotes,
+                      );
+                    });
+                    Navigator.pop(ctx);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryCaramel,
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.check, size: 18),
+                label: const Text('Guardar'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -731,11 +841,12 @@ class _AiRecipePreviewScreenState extends State<AiRecipePreviewScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
+                              key: Key('btn_edit_ai_ingredient_$index'),
                               icon: const Icon(Icons.edit_rounded, size: 18),
                               color: AppColors.primaryCaramel,
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
-                              onPressed: () => _editIngredientQuantity(index),
+                              onPressed: () => _editIngredient(index),
                             ),
                             const SizedBox(width: 10),
                             IconButton(

@@ -5,6 +5,7 @@ import '../../../../core/utils/precise_decimal.dart';
 enum MoldShape {
   circular,
   rectangular,
+  individual,
 }
 
 /// Available recipe scaling modes (BR-ESC-02).
@@ -15,10 +16,13 @@ enum ScalingMode {
   /// 2. Por Molde Rectangular (Largo x Ancho x Alto)
   rectangularMold,
 
-  /// 3. Por Factor Multiplicador Directo (ej. 0.5x, 1.5x, 2x)
+  /// 3. Por Vasitos / Envases Individuales (oz / ml)
+  individualContainers,
+
+  /// 4. Por Factor Multiplicador Directo (ej. 0.5x, 1.5x, 2x)
   directMultiplier,
 
-  /// 4. Por Número de Porciones Deseadas
+  /// 5. Por Número de Porciones Deseadas
   targetPortions;
 
   String get displayName {
@@ -27,6 +31,8 @@ enum ScalingMode {
         return 'Molde Redondo';
       case ScalingMode.rectangularMold:
         return 'Molde Rectangular';
+      case ScalingMode.individualContainers:
+        return 'Vasitos / Envases (oz)';
       case ScalingMode.directMultiplier:
         return 'Multiplicador (x)';
       case ScalingMode.targetPortions:
@@ -46,6 +52,8 @@ class MoldPreset extends Equatable {
   final PreciseDecimal? diameterCm;
   final PreciseDecimal? lengthCm;
   final PreciseDecimal? widthCm;
+  final PreciseDecimal? volumeOz;
+  final PreciseDecimal? volumeMl;
   final PreciseDecimal defaultHeightCm;
   final int estimatedPortions;
 
@@ -59,6 +67,8 @@ class MoldPreset extends Equatable {
     this.diameterCm,
     this.lengthCm,
     this.widthCm,
+    this.volumeOz,
+    this.volumeMl,
     required this.defaultHeightCm,
     required this.estimatedPortions,
   });
@@ -214,9 +224,102 @@ class MoldPreset extends Equatable {
     ),
   ];
 
+  /// Standard individual portion and container presets (vasitos de onzas, cupcakes, carlotas).
+  static final List<MoldPreset> individualPresets = [
+    MoldPreset(
+      id: 'cup_2oz',
+      name: 'Vasito 2 oz (60 ml) • Shot / Mini',
+      shape: MoldShape.individual,
+      moldTypeLabel: 'Individual',
+      dimensionLabel: '2 oz (60 ml)',
+      volumeOz: PreciseDecimal.fromInt(2),
+      volumeMl: PreciseDecimal.fromInt(60),
+      defaultHeightCm: PreciseDecimal.fromInt(4),
+      estimatedPortions: 1,
+    ),
+    MoldPreset(
+      id: 'cup_4oz',
+      name: 'Vasito 4 oz (120 ml) • Carlota Pequeña',
+      shape: MoldShape.individual,
+      moldTypeLabel: 'Individual',
+      dimensionLabel: '4 oz (120 ml)',
+      volumeOz: PreciseDecimal.fromInt(4),
+      volumeMl: PreciseDecimal.fromInt(120),
+      defaultHeightCm: PreciseDecimal.fromInt(5),
+      estimatedPortions: 1,
+    ),
+    MoldPreset(
+      id: 'cup_5oz',
+      name: 'Vasito 5 oz (150 ml) • Postre',
+      shape: MoldShape.individual,
+      moldTypeLabel: 'Individual',
+      dimensionLabel: '5 oz (150 ml)',
+      volumeOz: PreciseDecimal.fromInt(5),
+      volumeMl: PreciseDecimal.fromInt(150),
+      defaultHeightCm: PreciseDecimal.fromInt(5),
+      estimatedPortions: 1,
+    ),
+    MoldPreset(
+      id: 'cup_6oz',
+      name: 'Vasito 6 oz (180 ml) • Carlota / Mousse Estándar',
+      shape: MoldShape.individual,
+      moldTypeLabel: 'Individual',
+      dimensionLabel: '6 oz (180 ml)',
+      volumeOz: PreciseDecimal.fromInt(6),
+      volumeMl: PreciseDecimal.fromInt(180),
+      defaultHeightCm: PreciseDecimal.fromInt(6),
+      estimatedPortions: 1,
+    ),
+    MoldPreset(
+      id: 'cup_7oz',
+      name: 'Vasito 7 oz (210 ml) • Domo Mediano',
+      shape: MoldShape.individual,
+      moldTypeLabel: 'Individual',
+      dimensionLabel: '7 oz (210 ml)',
+      volumeOz: PreciseDecimal.fromInt(7),
+      volumeMl: PreciseDecimal.fromInt(210),
+      defaultHeightCm: PreciseDecimal.fromInt(6),
+      estimatedPortions: 1,
+    ),
+    MoldPreset(
+      id: 'cup_8oz',
+      name: 'Vasito 8 oz (240 ml) • Domo Carlota Grande',
+      shape: MoldShape.individual,
+      moldTypeLabel: 'Individual',
+      dimensionLabel: '8 oz (240 ml)',
+      volumeOz: PreciseDecimal.fromInt(8),
+      volumeMl: PreciseDecimal.fromInt(240),
+      defaultHeightCm: PreciseDecimal.fromInt(7),
+      estimatedPortions: 1,
+    ),
+    MoldPreset(
+      id: 'cupcake_std',
+      name: 'Cupcake / Muffin Estándar (~50 g)',
+      shape: MoldShape.individual,
+      moldTypeLabel: 'Cupcakes / Muffins',
+      dimensionLabel: 'Estándar (~50 g)',
+      volumeOz: PreciseDecimal.fromString('2.5'),
+      volumeMl: PreciseDecimal.fromInt(75),
+      defaultHeightCm: PreciseDecimal.fromInt(4),
+      estimatedPortions: 1,
+    ),
+    MoldPreset(
+      id: 'mini_cupcake',
+      name: 'Mini Cupcake (~25 g)',
+      shape: MoldShape.individual,
+      moldTypeLabel: 'Cupcakes / Muffins',
+      dimensionLabel: 'Mini (~25 g)',
+      volumeOz: PreciseDecimal.fromString('1.2'),
+      volumeMl: PreciseDecimal.fromInt(35),
+      defaultHeightCm: PreciseDecimal.fromInt(3),
+      estimatedPortions: 1,
+    ),
+  ];
+
   static List<MoldPreset> get allPresets => [
         ...circularPresets,
         ...rectangularPresets,
+        ...individualPresets,
       ];
 
   /// Attempts to match a preset from a recipe's `moldType` and `moldDimension`.
@@ -232,6 +335,34 @@ class MoldPreset extends Equatable {
     for (final preset in allPresets) {
       if (preset.dimensionLabel.toLowerCase() == normDim ||
           preset.name.toLowerCase() == normDim) {
+        return preset;
+      }
+    }
+
+    final normType = moldType?.toLowerCase().trim() ?? '';
+
+    // Matching for individual presets (e.g. "4 oz", "4oz", "6 oz", "vasito", "cupcake")
+    for (final preset in individualPresets) {
+      final pName = preset.name.toLowerCase();
+      final pDim = preset.dimensionLabel.toLowerCase();
+      if (normDim == pDim ||
+          normDim == pName ||
+          normDim.contains(pDim) ||
+          pDim.contains(normDim) ||
+          normDim.contains(pName) ||
+          pName.contains(normDim)) {
+        return preset;
+      }
+      final oz = preset.volumeOz?.toStringAsFixed(0);
+      if (oz != null &&
+          (normDim.contains('${oz}oz') ||
+              normDim.contains('$oz oz') ||
+              normDim.contains('$oz onzas'))) {
+        return preset;
+      }
+      if ((normDim.contains('cupcake') || normType.contains('cupcake')) &&
+          preset.id == 'cupcake_std' &&
+          !normDim.contains('mini')) {
         return preset;
       }
     }
@@ -275,6 +406,8 @@ class MoldPreset extends Equatable {
         diameterCm,
         lengthCm,
         widthCm,
+        volumeOz,
+        volumeMl,
         defaultHeightCm,
         estimatedPortions,
       ];

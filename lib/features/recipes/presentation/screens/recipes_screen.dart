@@ -16,6 +16,7 @@ import '../bloc/recipes_bloc.dart';
 import '../bloc/recipes_event.dart';
 import '../bloc/recipes_state.dart';
 import '../widgets/missing_ingredients_wizard_dialog.dart';
+import '../widgets/recipe_delete_confirmation_dialog.dart';
 import '../widgets/recipe_pdf_export_dialog.dart';
 import 'ai_recipe_preview_screen.dart';
 import 'recipe_form_screen.dart';
@@ -859,6 +860,38 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                              TextButton.icon(
+                                                key: Key('btn_delete_recipe_${recipe.id}'),
+                                                style: TextButton.styleFrom(
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
+                                                  ),
+                                                  minimumSize: const Size(48, 36),
+                                                  tapTargetSize:
+                                                      MaterialTapTargetSize.shrinkWrap,
+                                                  foregroundColor: AppColors.costRed,
+                                                ),
+                                                onPressed: () {
+                                                  RecipeDeleteConfirmationDialog.show(
+                                                    context,
+                                                    recipe: recipe,
+                                                  );
+                                                },
+                                                icon: const Icon(
+                                                  Icons.delete_outline,
+                                                  size: 16,
+                                                  color: AppColors.costRed,
+                                                ),
+                                                label: const Text(
+                                                  'Eliminar',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppColors.costRed,
                                                   ),
                                                 ),
                                               ),

@@ -28,6 +28,7 @@ import '../../domain/entities/recipe_item.dart';
 import '../../domain/repositories/recipe_repository.dart';
 import '../bloc/recipes_bloc.dart';
 import '../bloc/recipes_event.dart';
+import '../widgets/recipe_delete_confirmation_dialog.dart';
 import '../widgets/recipe_pdf_export_dialog.dart';
 import 'recipe_scaling_screen.dart';
 
@@ -828,12 +829,13 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                     // Section selector
                     DropdownButtonFormField<String>(
                       initialValue: selectedSection,
+                      isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Componente / Sección',
                         prefixIcon: Icon(Icons.layers_outlined),
                       ),
                       items: _currentSections.map((s) {
-                        return DropdownMenuItem(value: s, child: Text(s));
+                        return DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis));
                       }).toList(),
                       onChanged: (val) {
                         if (val != null) {
@@ -864,13 +866,14 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                           flex: 3,
                           child: DropdownButtonFormField<CulinaryUnit>(
                             initialValue: selectedUnit,
+                            isExpanded: true,
                             decoration: const InputDecoration(
                               labelText: 'Unidad',
                             ),
                             items: CulinaryUnit.values.map((u) {
                               return DropdownMenuItem(
                                 value: u,
-                                child: Text('${u.symbol} (${u.dimension.name})'),
+                                child: Text(u.symbol, overflow: TextOverflow.ellipsis),
                               );
                             }).toList(),
                             onChanged: (val) {
@@ -942,6 +945,233 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                         },
                         icon: const Icon(Icons.add),
                         label: const Text('Agregar a la Receta'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showEditIngredientModal(RecipeIngredientItem item) {
+    Ingredient? matchedCatalogIng;
+    for (final ing in _availableIngredients) {
+      if (ing.id == item.ingredientId) {
+        matchedCatalogIng = ing;
+        break;
+      }
+    }
+
+    final selectedIng = matchedCatalogIng ??
+        Ingredient(
+          id: item.ingredientId,
+          name: item.ingredientName,
+          category: 'General',
+          purchaseCost: item.unitCost,
+          purchaseQuantity: PreciseDecimal.one,
+          purchaseUnit: item.unit,
+          wastePercentage: PreciseDecimal.zero,
+          minimumUnitCost: item.unitCost,
+          minimumUnit: item.baseUnit ?? item.unit,
+          densityGPerMl: item.densityGPerMl,
+          updatedAt: DateTime.now(),
+        );
+
+    String selectedSection = item.section;
+    CulinaryUnit selectedUnit = CulinaryUnit.tryParse(item.unit) ?? CulinaryUnit.values.first;
+    final qtyController = TextEditingController(text: item.quantity.toString());
+    final noteController = TextEditingController(text: item.notes ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (modalCtx, setModalState) {
+            final qty = PreciseDecimal.tryParse(qtyController.text) ??
+                PreciseDecimal.zero;
+
+            PreciseDecimal lineCost = PreciseDecimal.zero;
+            String previewText = '';
+            try {
+              final targetUnit = selectedIng.minimumUnit;
+              final normalizedQty = UnitConverter.convertUnit(
+                qty,
+                selectedUnit.symbol,
+                targetUnit,
+                density: selectedIng.densityGPerMl,
+              );
+              lineCost = normalizedQty * selectedIng.minimumUnitCost;
+              previewText =
+                  '${qty.toStringAsFixed(2)} ${selectedUnit.symbol} ≈ ${normalizedQty.toStringAsFixed(2)} $targetUnit • Costo: \$${lineCost.toStringAsFixed(4)}';
+            } catch (_) {
+              lineCost = qty * selectedIng.minimumUnitCost;
+              previewText = 'Costo estimado directo: \$${lineCost.toStringAsFixed(4)}';
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(modalCtx).viewInsets.bottom + 16,
+                top: 20,
+                left: 16,
+                right: 16,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.edit_note, color: AppColors.primaryCaramel),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Editar Insumo: ${selectedIng.name}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textEspresso,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Section selector
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedSection,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Componente / Sección',
+                        prefixIcon: Icon(Icons.layers_outlined),
+                      ),
+                      items: _currentSections.map((s) {
+                        return DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis));
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setModalState(() => selectedSection = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Quantity and Unit Row
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: TextFormField(
+                            key: const Key('field_edit_ingredient_quantity'),
+                            controller: qtyController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            decoration: const InputDecoration(
+                              labelText: 'Cantidad',
+                              prefixIcon: Icon(Icons.scale_outlined),
+                            ),
+                            onChanged: (_) => setModalState(() {}),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 3,
+                          child: DropdownButtonFormField<CulinaryUnit>(
+                            key: const Key('dropdown_edit_ingredient_unit'),
+                            initialValue: selectedUnit,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Unidad',
+                            ),
+                            items: CulinaryUnit.values.map((u) {
+                              return DropdownMenuItem(
+                                value: u,
+                                child: Text(u.symbol, overflow: TextOverflow.ellipsis),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setModalState(() => selectedUnit = val);
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Note field
+                    TextFormField(
+                      key: const Key('field_edit_ingredient_note'),
+                      controller: noteController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nota (opcional)',
+                        prefixIcon: Icon(Icons.edit_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Real-time prorate preview badge
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.butterCream,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.borderSubtle),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.auto_graph,
+                              color: AppColors.primaryCaramel, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              previewText,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primaryDarkCaramel,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Save Button
+                    SizedBox(
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        key: const Key('btn_confirm_edit_ingredient'),
+                        onPressed: () {
+                          if (qty <= PreciseDecimal.zero) return;
+                          final updatedItem = item.copyWith(
+                            quantity: qty,
+                            unit: selectedUnit.symbol,
+                            section: selectedSection,
+                            notes: noteController.text.trim().isEmpty
+                                ? null
+                                : noteController.text.trim(),
+                          );
+                          setState(() {
+                            final currentIdx =
+                                _ingredients.indexWhere((i) => i.id == item.id);
+                            if (currentIdx != -1) {
+                              _ingredients[currentIdx] = updatedItem;
+                            }
+                            _syncLifecycleStatusAfterOrphanResolution();
+                          });
+                          Navigator.pop(ctx);
+                        },
+                        icon: const Icon(Icons.check),
+                        label: const Text('Guardar Cambios'),
                       ),
                     ),
                   ],
@@ -1122,6 +1352,135 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
     );
   }
 
+  void _showEditSubRecipeModal(RecipeSubRecipeItem sub) {
+    String selectedSection = sub.section;
+    final factorController =
+        TextEditingController(text: sub.quantityFactor.toString());
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (modalCtx, setModalState) {
+            final factor = PreciseDecimal.tryParse(factorController.text) ??
+                PreciseDecimal.zero;
+            final subTotal = factor * sub.unitCost;
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(modalCtx).viewInsets.bottom + 16,
+                top: 20,
+                left: 16,
+                right: 16,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.layers, color: AppColors.primaryDarkCaramel),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Editar Sub-Receta: ${sub.childRecipeName}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textEspresso,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    DropdownButtonFormField<String>(
+                      initialValue: _currentSections.contains(selectedSection)
+                          ? selectedSection
+                          : _defaultSections.first,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Componente / Sección',
+                        prefixIcon: Icon(Icons.layers_outlined),
+                      ),
+                      items: _currentSections.map((s) {
+                        return DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis));
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setModalState(() => selectedSection = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+
+                    TextFormField(
+                      key: const Key('field_edit_subrecipe_factor'),
+                      controller: factorController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Factor de Proporción (1.0 = lote completo)',
+                        prefixIcon: Icon(Icons.pie_chart_outline),
+                      ),
+                      onChanged: (_) => setModalState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.butterCream,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.borderSubtle),
+                      ),
+                      child: Text(
+                        'Costo proporcional sub-receta: \$${subTotal.toStringAsFixed(4)}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryDarkCaramel,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    SizedBox(
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        key: const Key('btn_confirm_edit_subrecipe'),
+                        onPressed: () {
+                          if (factor <= PreciseDecimal.zero) return;
+                          final updated = sub.copyWith(
+                            quantityFactor: factor,
+                            section: selectedSection,
+                          );
+                          setState(() {
+                            final idx =
+                                _subRecipes.indexWhere((s) => s.id == sub.id);
+                            if (idx != -1) {
+                              _subRecipes[idx] = updated;
+                            }
+                          });
+                          Navigator.pop(ctx);
+                        },
+                        icon: const Icon(Icons.check),
+                        label: const Text('Guardar Cambios'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showAddPackagingModal() {
     if (_availablePackaging.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1251,6 +1610,111 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
     );
   }
 
+  void _showEditPackagingModal(RecipePackagingItem pack) {
+    final qtyController =
+        TextEditingController(text: pack.pieceQuantity.toString());
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (modalCtx, setModalState) {
+            final qty = int.tryParse(qtyController.text) ?? 0;
+            final lineCost =
+                PreciseDecimal.fromInt(qty) * pack.unitCost;
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(modalCtx).viewInsets.bottom + 16,
+                top: 20,
+                left: 16,
+                right: 16,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.inventory_2_outlined,
+                            color: AppColors.primaryCaramel),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Editar Empaque: ${pack.cleanHistoricalName}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textEspresso,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    TextFormField(
+                      key: const Key('field_edit_packaging_qty'),
+                      controller: qtyController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Cantidad de Piezas',
+                        prefixIcon: Icon(Icons.tag),
+                      ),
+                      onChanged: (_) => setModalState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.butterCream,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.borderSubtle),
+                      ),
+                      child: Text(
+                        'Costo total de empaque: \$${lineCost.toStringAsFixed(4)}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryDarkCaramel,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    SizedBox(
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        key: const Key('btn_confirm_edit_packaging'),
+                        onPressed: () {
+                          if (qty <= 0) return;
+                          final updated = pack.copyWith(pieceQuantity: qty);
+                          setState(() {
+                            final idx =
+                                _packaging.indexWhere((p) => p.id == pack.id);
+                            if (idx != -1) {
+                              _packaging[idx] = updated;
+                            }
+                          });
+                          Navigator.pop(ctx);
+                        },
+                        icon: const Icon(Icons.check),
+                        label: const Text('Guardar Cambios'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1264,6 +1728,20 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
             onPressed: () => FocusScope.of(context).unfocus(),
           ),
           if (isEditing && widget.recipeToEdit != null) ...[
+            IconButton(
+              key: const Key('btn_delete_recipe_form'),
+              tooltip: 'Eliminar Receta',
+              icon: const Icon(Icons.delete_outline, color: AppColors.costRed),
+              onPressed: () {
+                RecipeDeleteConfirmationDialog.show(
+                  context,
+                  recipe: widget.recipeToEdit!,
+                  onDeleted: () {
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
             IconButton(
               key: const Key('btn_export_recipe_pdf'),
               tooltip: 'Exportar Ficha Técnica / Producción en PDF',
@@ -1694,10 +2172,13 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                       Expanded(
                         child: TextFormField(
                           controller: _moldDimensionController,
-                          decoration: const InputDecoration(
-                            labelText: 'Dimensión Molde',
-                            prefixIcon: Icon(Icons.straighten),
-                            hintText: '20 cm / 8"',
+                          decoration: InputDecoration(
+                            labelText: 'Dimensión / Capacidad',
+                            prefixIcon: const Icon(Icons.straighten),
+                            hintText: (_selectedMoldType == 'Individual' ||
+                                    _selectedMoldType == 'Cupcakes / Muffins')
+                                ? 'Ej: Vasito 4 oz, 6 oz, etc.'
+                                : '20 cm / 8"',
                           ),
                         ),
                       ),
@@ -1705,7 +2186,51 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'Moldes estándar rápidos (RF-SYS-12):',
+                    'Vasitos y Envases Individuales (oz / ml):',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryDarkCaramel,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: MoldPreset.individualPresets.map((preset) {
+                      final isSelected = _moldDimensionController.text.trim() ==
+                          preset.dimensionLabel;
+                      return ActionChip(
+                        key: Key('form_mold_preset_${preset.id}'),
+                        label: Text(
+                          preset.dimensionLabel,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        backgroundColor: isSelected
+                            ? AppColors.butterCream
+                            : AppColors.surfaceWarm,
+                        onPressed: () {
+                          setState(() {
+                            if (!_moldTypes.contains(preset.moldTypeLabel)) {
+                              _moldTypes.insert(
+                                  _moldTypes.length - 1, preset.moldTypeLabel);
+                            }
+                            _selectedMoldType = preset.moldTypeLabel;
+                            _moldDimensionController.text =
+                                preset.dimensionLabel;
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Moldes estándar de torta y plancha:',
                     style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                   ),
                   const SizedBox(height: 6),
@@ -2063,6 +2588,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                   return ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
+                    onTap: () => _showEditIngredientModal(ing),
                     leading: const Icon(Icons.circle,
                         size: 8, color: AppColors.primaryCaramel),
                     title: Text(
@@ -2084,6 +2610,14 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                           ),
                         ),
                         IconButton(
+                          key: Key('btn_edit_recipe_ingredient_${ing.id}'),
+                          icon: const Icon(Icons.edit_outlined,
+                              size: 20, color: AppColors.primaryCaramel),
+                          tooltip: 'Editar Insumo / Cantidad',
+                          onPressed: () => _showEditIngredientModal(ing),
+                        ),
+                        IconButton(
+                          key: Key('btn_delete_recipe_ingredient_${ing.id}'),
                           icon: const Icon(Icons.delete_outline,
                               size: 20, color: AppColors.costRed),
                           onPressed: () {
@@ -2105,6 +2639,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
               ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
+                onTap: () => _showEditSubRecipeModal(sub),
                 leading: const Icon(Icons.layers,
                     size: 16, color: AppColors.primaryDarkCaramel),
                 title: Text(
@@ -2128,6 +2663,14 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                       ),
                     ),
                     IconButton(
+                      key: Key('btn_edit_subrecipe_${sub.id}'),
+                      icon: const Icon(Icons.edit_outlined,
+                          size: 20, color: AppColors.primaryDarkCaramel),
+                      tooltip: 'Editar Factor de Sub-receta',
+                      onPressed: () => _showEditSubRecipeModal(sub),
+                    ),
+                    IconButton(
+                      key: Key('btn_delete_subrecipe_${sub.id}'),
                       icon: const Icon(Icons.delete_outline,
                           size: 20, color: AppColors.costRed),
                       onPressed: () {
@@ -2271,6 +2814,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                   }
                   return ListTile(
                     dense: true,
+                    onTap: () => _showEditPackagingModal(pack),
                     title: Text(
                       pack.packagingName,
                       style: const TextStyle(fontWeight: FontWeight.w600),
@@ -2289,6 +2833,14 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                           ),
                         ),
                         IconButton(
+                          key: Key('btn_edit_packaging_${pack.id}'),
+                          icon: const Icon(Icons.edit_outlined,
+                              size: 20, color: AppColors.primaryCaramel),
+                          tooltip: 'Editar Cantidad de Empaque',
+                          onPressed: () => _showEditPackagingModal(pack),
+                        ),
+                        IconButton(
+                          key: Key('btn_delete_packaging_${pack.id}'),
                           icon: const Icon(Icons.delete_outline,
                               size: 20, color: AppColors.costRed),
                           onPressed: () {

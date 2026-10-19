@@ -577,6 +577,87 @@ void main() {
         expect(find.byType(RecipeFormScreen), findsOneWidget);
         expect(find.text('Tarta Especial'), findsOneWidget);
       });
+
+      testWidgets("RecipeFormScreen allows editing an ingredient item via modal", (tester) async {
+        tester.view.physicalSize = const Size(400, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() => tester.view.resetPhysicalSize());
+
+        final fakeRecipeRepo = FakeRecipeRepository();
+        final bloc = RecipesBloc(recipeRepository: fakeRecipeRepo);
+
+        final sampleRecipe = Recipe(
+          id: 'recipe-editable',
+          name: 'Galletas de Mantequilla',
+          yieldPortions: 12,
+          prepTimeMinutes: 20,
+          bakeTimeMinutes: 15,
+          moldType: 'Individual',
+          moldDimension: 'Vasito 4 oz',
+          targetProfitMargin: PreciseDecimal.fromString('50.0'),
+          status: AppConstants.recipeStatusActive,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          ingredients: [
+            RecipeIngredientItem(
+              id: 'item-harina-editable',
+              recipeId: 'recipe-editable',
+              ingredientId: 'ing_harina',
+              ingredientName: 'Harina de Trigo',
+              quantity: PreciseDecimal.fromInt(250),
+              unit: 'g',
+              baseUnit: 'g',
+              section: 'General',
+              unitCost: PreciseDecimal.fromString('0.0009'),
+            ),
+          ],
+        );
+
+        final fakeIngRepo = FakeIngredientRepositoryWithHarina();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: MultiRepositoryProvider(
+              providers: [
+                RepositoryProvider<IngredientRepository>.value(value: fakeIngRepo),
+                RepositoryProvider<PackagingRepository>.value(value: FakePackagingRepository()),
+                RepositoryProvider<RecipeRepository>.value(value: fakeRecipeRepo),
+              ],
+              child: BlocProvider<RecipesBloc>.value(
+                value: bloc,
+                child: RecipeFormScreen(recipeToEdit: sampleRecipe),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Switch to the 'Ingredientes' tab
+        await tester.tap(find.text('Ingredientes'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('250.00 g'), findsOneWidget);
+
+        // Tap edit button on the ingredient item
+        final editBtn = find.byKey(const Key('btn_edit_recipe_ingredient_item-harina-editable'));
+        expect(editBtn, findsOneWidget);
+        await tester.tap(editBtn);
+        await tester.pumpAndSettle();
+
+        // Modal should open
+        expect(find.byKey(const Key('field_edit_ingredient_quantity')), findsOneWidget);
+
+        // Change quantity to 350
+        await tester.enterText(find.byKey(const Key('field_edit_ingredient_quantity')), '350');
+        await tester.pumpAndSettle();
+
+        // Tap Guardar Cambios
+        await tester.tap(find.byKey(const Key('btn_confirm_edit_ingredient')));
+        await tester.pumpAndSettle();
+
+        // Verify updated quantity appears in UI
+        expect(find.text('350.00 g'), findsOneWidget);
+      });
     });
   });
 }
@@ -599,6 +680,24 @@ class FakeIngredientRepository implements IngredientRepository {
 
   @override
   Future<List<String>> getRecipesUsingIngredient(String ingredientId) async => [];
+}
+
+class FakeIngredientRepositoryWithHarina extends FakeIngredientRepository {
+  @override
+  Future<List<Ingredient>> getAllIngredients() async => [
+    Ingredient(
+      id: 'ing_harina',
+      name: 'Harina de Trigo',
+      category: 'Harinas',
+      purchaseCost: PreciseDecimal.fromString('45.0'),
+      purchaseQuantity: PreciseDecimal.fromString('50.0'),
+      purchaseUnit: 'kg',
+      wastePercentage: PreciseDecimal.zero,
+      minimumUnitCost: PreciseDecimal.fromString('0.0009'),
+      minimumUnit: 'g',
+      updatedAt: DateTime.now(),
+    ),
+  ];
 }
 
 class FakePackagingRepository implements PackagingRepository {
