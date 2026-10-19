@@ -86,15 +86,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
     'Decoración',
   ];
 
-  static const List<String> _moldTypes = [
-    'Redondo',
-    'Cuadrado',
-    'Rectangular',
-    'Plancha',
-    'Cupcakes',
-    'Individual',
-    'Ninguno',
-  ];
+  late final List<String> _moldTypes;
 
   bool get isEditing => widget.recipeToEdit != null;
 
@@ -144,7 +136,14 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
     );
     _overheadController.addListener(() => setState(() {}));
 
-    _selectedMoldType = recipe?.moldType ?? _moldTypes.first;
+    final initialMold = recipe?.moldType?.trim();
+    _moldTypes = List<String>.from(AppConstants.standardMoldTypes);
+    if (initialMold != null && initialMold.isNotEmpty && !_moldTypes.contains(initialMold)) {
+      _moldTypes.insert(_moldTypes.length - 1, initialMold);
+    }
+    _selectedMoldType = (initialMold != null && initialMold.isNotEmpty)
+        ? initialMold
+        : _moldTypes.first;
     _selectedStatus = recipe?.status ?? AppConstants.recipeStatusActive;
 
     if (recipe != null) {
@@ -1674,6 +1673,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
+                          key: ValueKey('mold_type_dropdown_$_selectedMoldType'),
                           initialValue: _selectedMoldType,
                           isExpanded: true,
                           decoration: const InputDecoration(
@@ -1735,6 +1735,9 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                             : AppColors.surfaceWarm,
                         onPressed: () {
                           setState(() {
+                            if (!_moldTypes.contains(preset.moldTypeLabel)) {
+                              _moldTypes.insert(_moldTypes.length - 1, preset.moldTypeLabel);
+                            }
                             _selectedMoldType = preset.moldTypeLabel;
                             _moldDimensionController.text =
                                 preset.dimensionLabel;

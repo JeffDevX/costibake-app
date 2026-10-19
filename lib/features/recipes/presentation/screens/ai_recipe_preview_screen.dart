@@ -61,15 +61,7 @@ class _AiRecipePreviewScreenState extends State<AiRecipePreviewScreen> {
   late List<AiExtractedIngredient> _ingredients;
   bool _isSaving = false;
 
-  static const List<String> _moldTypes = [
-    'Redondo',
-    'Rectangular',
-    'Cuadrado',
-    'Plancha',
-    'Cupcakes / Muffins',
-    'Bundt / Corona',
-    'Otro',
-  ];
+  late final List<String> _moldTypes;
 
   @override
   void initState() {
@@ -98,10 +90,14 @@ class _AiRecipePreviewScreenState extends State<AiRecipePreviewScreen> {
     }
     _notesController = TextEditingController(text: buffer.toString().trim());
 
-    _moldType = ext.moldType;
-    if (_moldType != null && !_moldTypes.contains(_moldType)) {
-      _moldType = 'Otro';
+    _moldTypes = List<String>.from(AppConstants.standardMoldTypes);
+    final extMold = ext.moldType?.trim();
+    if (extMold != null && extMold.isNotEmpty && !_moldTypes.contains(extMold)) {
+      _moldTypes.insert(_moldTypes.length - 1, extMold);
     }
+    _moldType = (extMold != null && extMold.isNotEmpty)
+        ? extMold
+        : _moldTypes.first;
 
     _ingredients = List.from(ext.ingredients);
   }
@@ -590,6 +586,7 @@ class _AiRecipePreviewScreenState extends State<AiRecipePreviewScreen> {
               Expanded(
                 flex: 3,
                 child: DropdownButtonFormField<String>(
+                  key: ValueKey('ai_mold_type_dropdown_$_moldType'),
                   initialValue: _moldType,
                   isExpanded: true,
                   decoration: const InputDecoration(

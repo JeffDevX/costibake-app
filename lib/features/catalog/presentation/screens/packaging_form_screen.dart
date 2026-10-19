@@ -67,6 +67,9 @@ class _PackagingFormScreenState extends State<PackagingFormScreen> {
     _notesController = TextEditingController(text: p?.notes ?? '');
 
     _selectedCategory = p?.category ?? categories.first;
+    if (!categories.contains(_selectedCategory)) {
+      _selectedCategory = categories.first;
+    }
 
     _recalculateUnitCost();
   }
