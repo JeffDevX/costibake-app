@@ -135,6 +135,13 @@ class CostingScreen extends StatelessWidget {
                                   breakdown.totalProductionCost.toCurrencyString(symbol: config.currencySymbol),
                                   isBold: true,
                                 ),
+                                _buildCostRow(
+                                  recipe.yieldPortions > 1
+                                      ? 'Costo Unitario por Envase / Porción (${recipe.yieldPortions} unidades):'
+                                      : 'Costo Unitario por Porción (1 pza):',
+                                  '${breakdown.costPerPortion.toCurrencyString(symbol: config.currencySymbol)}${recipe.yieldPortions > 1 ? ' / pza' : ''}',
+                                  isBold: true,
+                                ),
                                 const SizedBox(height: 14),
                                 // Visual Distribution Progress Bar & Legend (JEF-15)
                                 CostDistributionWidget(

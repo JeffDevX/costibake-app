@@ -658,6 +658,102 @@ void main() {
         // Verify updated quantity appears in UI
         expect(find.text('350.00 g'), findsOneWidget);
       });
+
+      testWidgets(
+          'RecipeFormScreen allows adjusting yield portions directly in Costeo tab and recalculates portion cost',
+          (tester) async {
+        tester.view.physicalSize = const Size(400, 1600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() => tester.view.resetPhysicalSize());
+
+        final fakeRecipeRepo = FakeRecipeRepository();
+        final bloc = RecipesBloc(recipeRepository: fakeRecipeRepo);
+
+        final sampleRecipe = Recipe(
+          id: 'recipe-cupcakes',
+          name: 'Cupcakes de Chocolate',
+          yieldPortions: 1, // Started at 1 (batch)
+          prepTimeMinutes: 20,
+          bakeTimeMinutes: 18,
+          moldType: 'Individual',
+          moldDimension: 'Cupcake Estándar',
+          targetProfitMargin: PreciseDecimal.fromString('40.0'),
+          status: AppConstants.recipeStatusActive,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          ingredients: [
+            RecipeIngredientItem(
+              id: 'item-harina-cupcake',
+              recipeId: 'recipe-cupcakes',
+              ingredientId: 'ing_harina',
+              ingredientName: 'Harina de Trigo',
+              quantity: PreciseDecimal.fromInt(250),
+              unit: 'g',
+              baseUnit: 'g',
+              section: 'Base',
+              unitCost: PreciseDecimal.fromString('0.0009'),
+            ),
+          ],
+        );
+
+        final fakeIngRepo = FakeIngredientRepositoryWithHarina();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: MultiRepositoryProvider(
+              providers: [
+                RepositoryProvider<IngredientRepository>.value(value: fakeIngRepo),
+                RepositoryProvider<PackagingRepository>.value(value: FakePackagingRepository()),
+                RepositoryProvider<RecipeRepository>.value(value: fakeRecipeRepo),
+              ],
+              child: BlocProvider<RecipesBloc>.value(
+                value: bloc,
+                child: RecipeFormScreen(recipeToEdit: sampleRecipe),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Switch to the 'Costeo' tab
+        await tester.tap(find.text('Costeo'));
+        await tester.pumpAndSettle();
+
+        // Yield card should be present in Costing tab
+        expect(find.byKey(const Key('card_yield_costing_tab')), findsOneWidget);
+        expect(find.text('1 lote completo'), findsOneWidget);
+
+        // Tap the 12 u. quick chip
+        final chip12 = find.byKey(const Key('costing_tab_yield_chip_12'));
+        expect(chip12, findsOneWidget);
+        await tester.tap(chip12);
+        await tester.pumpAndSettle();
+
+        // Now yield is 12 units
+        expect(find.text('12 unidades'), findsOneWidget);
+        await tester.drag(
+          find.byKey(const Key('recipe_form_costing_tab_list')),
+          const Offset(0, -300),
+        );
+        await tester.pumpAndSettle();
+        expect(find.textContaining('12 unidades):'), findsOneWidget);
+
+        // Switch back to General tab to test mold preset auto-yield
+        await tester.tap(find.text('General'));
+        await tester.pumpAndSettle();
+
+        // If yield field is reset to 1
+        await tester.enterText(find.byKey(const Key('field_yield_portions')), '1');
+        await tester.pumpAndSettle();
+
+        // Tapping Cupcake Estándar preset sets yield to 12
+        final cupcakePreset = find.byKey(const Key('form_mold_preset_cupcake_std'));
+        if (cupcakePreset.evaluate().isNotEmpty) {
+          await tester.tap(cupcakePreset);
+          await tester.pumpAndSettle();
+          expect(find.text('12'), findsWidgets);
+        }
+      });
     });
   });
 }

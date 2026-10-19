@@ -118,7 +118,7 @@ Tu tarea es analizar la imagen o documento de la receta y extraer minuciosamente
 
 REGLAS DE EXTRACCIÓN:
 1. Extrae el título de la receta con precisión.
-2. Identifica el rendimiento o porciones (yieldPortions). Si no se indica, estima 1.
+2. Identifica el rendimiento o porciones (yieldPortions). Si la receta es para unidades individuales (ej. cupcakes, galletas, muffins, vasitos/shots de postre como Carlota) y no especifica cantidad, infiere el rendimiento estándar por lote (ej. 12) o según los ingredientes. Si es una torta, pastel o pay entero y no se indica, usa 1.
 3. Identifica tiempos de preparación (prepTimeMinutes) y horneado (bakeTimeMinutes). Si no se indican, usa 0.
 4. Identifica tipo de molde (moldType) y dimensiones (moldDimension) si se mencionan.
 5. Insumos/Ingredientes:

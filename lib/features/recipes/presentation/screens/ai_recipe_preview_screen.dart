@@ -71,6 +71,7 @@ class _AiRecipePreviewScreenState extends State<AiRecipePreviewScreen> {
     _titleController = TextEditingController(text: ext.title);
     _yieldPortionsController =
         TextEditingController(text: ext.yieldPortions.toString());
+    _yieldPortionsController.addListener(() => setState(() {}));
     _prepTimeController =
         TextEditingController(text: ext.prepTimeMinutes.toString());
     _bakeTimeController =
@@ -687,6 +688,37 @@ class _AiRecipePreviewScreenState extends State<AiRecipePreviewScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: [6, 12, 18, 24].map((qty) {
+              final isSelected =
+                  (int.tryParse(_yieldPortionsController.text.trim()) ?? 1) ==
+                      qty;
+              return ChoiceChip(
+                key: Key('ai_preview_yield_chip_$qty'),
+                label: Text('$qty porciones'),
+                selected: isSelected,
+                selectedColor: AppColors.surfaceHighlight,
+                labelStyle: TextStyle(
+                  fontSize: 11,
+                  fontWeight:
+                      isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected
+                      ? AppColors.primaryDarkCaramel
+                      : AppColors.textEspresso,
+                ),
+                onSelected: (val) {
+                  if (val) {
+                    setState(() {
+                      _yieldPortionsController.text = qty.toString();
+                    });
+                  }
+                },
+              );
+            }).toList(),
           ),
           const SizedBox(height: 12),
 

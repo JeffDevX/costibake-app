@@ -102,12 +102,18 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
     _yieldController = TextEditingController(
       text: recipe != null ? recipe.yieldPortions.toString() : '1',
     );
+    _yieldController.addListener(() => setState(() {}));
+
     _prepTimeController = TextEditingController(
       text: recipe != null ? recipe.prepTimeMinutes.toString() : '0',
     );
+    _prepTimeController.addListener(() => setState(() {}));
+
     _bakeTimeController = TextEditingController(
       text: recipe != null ? recipe.bakeTimeMinutes.toString() : '0',
     );
+    _bakeTimeController.addListener(() => setState(() {}));
+
     _moldDimensionController =
         TextEditingController(text: recipe?.moldDimension ?? '');
     _marginController = TextEditingController(
@@ -115,11 +121,21 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
           ? recipe.targetProfitMargin.toStringAsFixed(2)
           : AppConstants.defaultTargetProfitMargin.toStringAsFixed(2),
     );
+    _marginController.addListener(() => setState(() {}));
 
     _pricingMode = recipe?.pricingMode ?? PricingMode.markupOnCost;
     _roundingRule = recipe?.roundingRule ?? RoundingRule.none;
     _customBatchPrice = recipe?.customBatchPrice;
     _customPortionPrice = recipe?.customPortionPrice;
+
+    // Clean up inadvertent legacy state where portion price matched batch price despite having >1 portions
+    if (recipe != null &&
+        recipe.yieldPortions > 1 &&
+        _customPortionPrice != null &&
+        _customBatchPrice != null &&
+        _customPortionPrice == _customBatchPrice) {
+      _customPortionPrice = null;
+    }
 
     _useCustomLaborRate = recipe?.laborHourlyRateOverride != null;
     _laborRateController = TextEditingController(
@@ -2048,6 +2064,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                     children: [
                       Expanded(
                         child: TextFormField(
+                          key: const Key('field_yield_portions'),
                           controller: _yieldController,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
@@ -2223,6 +2240,10 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                             _selectedMoldType = preset.moldTypeLabel;
                             _moldDimensionController.text =
                                 preset.dimensionLabel;
+                            if (_yieldController.text.trim() == '1' ||
+                                _yieldController.text.trim().isEmpty) {
+                              _yieldController.text = '12';
+                            }
                           });
                         },
                       );
@@ -3088,6 +3109,106 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
           ),
           const SizedBox(height: 16),
 
+          // Yield / Portions adjustment directly in Costing tab
+          Card(
+            key: const Key('card_yield_costing_tab'),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.pie_chart_outline,
+                        color: AppColors.primaryCaramel,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Rendimiento y Porciones / Envases',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textEspresso,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryCaramel.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          breakdown.yieldPortions > 1
+                              ? '${breakdown.yieldPortions} unidades'
+                              : '1 lote completo',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primaryCaramel,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Define cuántas porciones, vasitos o unidades rinde esta receta para calcular el costo y precio unitario.',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          key: const Key('field_yield_portions_costing_tab'),
+                          controller: _yieldController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Cantidad de Porciones / Envases',
+                            prefixIcon: Icon(Icons.pin_outlined),
+                            hintText: 'Ej: 12',
+                            suffixText: 'pzas',
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      for (final count in [1, 6, 12, 18, 24])
+                        ActionChip(
+                          key: Key('costing_tab_yield_chip_$count'),
+                          label: Text(count == 1 ? '1 lote' : '$count u.'),
+                          avatar: count == breakdown.yieldPortions
+                              ? const Icon(Icons.check, size: 14)
+                              : null,
+                          backgroundColor: count == breakdown.yieldPortions
+                              ? AppColors.primaryCaramel.withValues(alpha: 0.15)
+                              : null,
+                          onPressed: () {
+                            setState(() {
+                              _yieldController.text = count.toString();
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Quadruple Cost Elements Breakdown
           Card(
             child: Padding(
@@ -3113,7 +3234,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                     _buildCostRow(
                       'Sub-recetas Modulares:',
                       breakdown.subRecipesCost
-                          .toCurrencyString(symbol: config.currencySymbol),
+                        .toCurrencyString(symbol: config.currencySymbol),
                     ),
                   _buildCostRow(
                     'Empaques y Descartables (CE):',
@@ -3138,9 +3259,10 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                     isBold: true,
                   ),
                   _buildCostRow(
-                    'Costo Unitario por Porción (${breakdown.yieldPortions} pzas):',
-                    breakdown.costPerPortion
-                        .toCurrencyString(symbol: config.currencySymbol),
+                    breakdown.yieldPortions > 1
+                        ? 'Costo Unitario por Envase / Porción (${breakdown.yieldPortions} unidades):'
+                        : 'Costo Unitario por Porción (1 pza):',
+                    '${breakdown.costPerPortion.toCurrencyString(symbol: config.currencySymbol)}${breakdown.yieldPortions > 1 ? ' / pza' : ''}',
                     isBold: true,
                   ),
                 ],
@@ -3172,6 +3294,12 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                   _roundingRule = newStrategy.roundingRule;
                   _customBatchPrice = newStrategy.customBatchPrice;
                   _customPortionPrice = newStrategy.customPortionPrice;
+                  if (breakdown.yieldPortions > 1 &&
+                      _customPortionPrice != null &&
+                      _customBatchPrice != null &&
+                      _customPortionPrice == _customBatchPrice) {
+                    _customPortionPrice = null;
+                  }
                   _marginController.text =
                       newStrategy.targetProfitMargin.toStringAsFixed(0);
                 });

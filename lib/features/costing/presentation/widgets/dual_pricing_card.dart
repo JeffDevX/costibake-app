@@ -70,6 +70,20 @@ class _DualPricingCardState extends State<DualPricingCard> {
         _marginController.text = marginStr;
       }
     }
+    if (widget.yieldPortions != oldWidget.yieldPortions ||
+        widget.totalProductionCost != oldWidget.totalProductionCost) {
+      if (oldWidget.yieldPortions == 1 && widget.yieldPortions > 1) {
+        if (_customPortionPriceController.text.isNotEmpty &&
+            (_customPortionPriceController.text ==
+                    _customBatchPriceController.text ||
+                _customPortionPriceController.text ==
+                    oldWidget.totalProductionCost.toStringAsFixed(2))) {
+          _customPortionPriceController.clear();
+          _notifyParent();
+        }
+      }
+      setState(() {});
+    }
   }
 
   @override
@@ -714,14 +728,12 @@ class _DualPricingCardState extends State<DualPricingCard> {
           // Costo Unitario por Porción
           _buildInfoRow(
             'Costo Unitario (CUP):',
-            breakdown.portionCost
-                .toCurrencyString(symbol: widget.currencySymbol),
+            '${breakdown.portionCost.toCurrencyString(symbol: widget.currencySymbol)}${breakdown.yieldPortions > 1 ? ' / unidad' : ''}',
           ),
           // Precio Sugerido Porción
           _buildInfoRow(
             'Precio Sugerido Porción:',
-            breakdown.roundedSuggestedPortionPrice
-                .toCurrencyString(symbol: widget.currencySymbol),
+            '${breakdown.roundedSuggestedPortionPrice.toCurrencyString(symbol: widget.currencySymbol)}${breakdown.yieldPortions > 1 ? ' / unidad' : ''}',
             subtitle: _roundingRule != RoundingRule.none
                 ? '(Base: ${breakdown.rawSuggestedPortionPrice.toCurrencyString(symbol: widget.currencySymbol)})'
                 : null,
@@ -729,9 +741,11 @@ class _DualPricingCardState extends State<DualPricingCard> {
           const SizedBox(height: 8),
 
           // Precio Final Efectivo Porción (Large Typographic Contrast >= 24sp)
-          const Text(
-            'Precio Final Porción:',
-            style: TextStyle(
+          Text(
+            breakdown.yieldPortions > 1
+                ? 'Precio Final por Unidad / Envase:'
+                : 'Precio Final Porción:',
+            style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: AppColors.textMuted,
@@ -798,7 +812,7 @@ class _DualPricingCardState extends State<DualPricingCard> {
           // Net Profit Portion & Real Margin Rows
           _buildMetricRow(
             'Ganancia Unitaria:',
-            '${breakdown.netProfitPortion >= PreciseDecimal.zero ? '+' : ''}${breakdown.netProfitPortion.toCurrencyString(symbol: widget.currencySymbol)}',
+            '${breakdown.netProfitPortion >= PreciseDecimal.zero ? '+' : ''}${breakdown.netProfitPortion.toCurrencyString(symbol: widget.currencySymbol)}${breakdown.yieldPortions > 1 ? ' / unidad' : ''}',
             valueColor: breakdown.netProfitPortion > PreciseDecimal.zero
                 ? AppColors.profitGreen
                 : AppColors.costRed,
@@ -810,6 +824,36 @@ class _DualPricingCardState extends State<DualPricingCard> {
                 ? AppColors.profitGreen
                 : AppColors.costRed,
           ),
+
+          if (breakdown.yieldPortions == 1) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.butterCream,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: AppColors.primaryDarkCaramel,
+                  ),
+                  SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Rendimiento en 1 lote. Para ver el precio por vasito o cupcake, aumenta las unidades en Rendimiento.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textEspresso,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           // Loss Protection Alert (BR-PRC-05)
           if (isLoss) ...[
