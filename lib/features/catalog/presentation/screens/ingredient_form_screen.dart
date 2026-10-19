@@ -179,7 +179,13 @@ class _IngredientFormScreenState extends State<IngredientFormScreen> {
     }
 
     _selectedCategory = ing?.category ?? categories.first;
+    if (!categories.contains(_selectedCategory)) {
+      _selectedCategory = categories.contains('Otros') ? 'Otros' : categories.first;
+    }
     _selectedUnit = ing?.purchaseUnit ?? 'kg';
+    if (!commercialUnits.any((u) => u['value'] == _selectedUnit)) {
+      _selectedUnit = commercialUnits.first['value']!;
+    }
 
     _recalculateNormalization();
   }

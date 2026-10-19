@@ -19,4 +19,17 @@ class AppConstants {
   static const String recipeStatusActive = 'ACTIVA';
   static const String recipeStatusDraft = 'BORRADOR';
   static const String recipeStatusIncomplete = 'INCOMPLETA_REQUIERE_REVISION';
+
+  // Standard Mold Types for Recipes & AI Extraction
+  static const List<String> standardMoldTypes = [
+    'Redondo',
+    'Cuadrado',
+    'Rectangular',
+    'Plancha',
+    'Cupcakes / Muffins',
+    'Bundt / Corona',
+    'Individual',
+    'Ninguno',
+    'Otro',
+  ];
 }

@@ -487,6 +487,96 @@ void main() {
         // Verify no RenderFlex overflow
         expect(tester.takeException(), isNull);
       });
+
+      testWidgets("RecipeFormScreen opens recipe with moldType: 'Otro' without Dropdown assertion error", (tester) async {
+        tester.view.physicalSize = const Size(360, 640);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() => tester.view.resetPhysicalSize());
+
+        final fakeRecipeRepo = FakeRecipeRepository();
+        final bloc = RecipesBloc(recipeRepository: fakeRecipeRepo);
+
+        final recipeWithOtroMold = Recipe(
+          id: 'recipe-otro-mold',
+          name: 'Flan Casero',
+          yieldPortions: 1,
+          prepTimeMinutes: 120,
+          bakeTimeMinutes: 60,
+          moldType: 'Otro',
+          moldDimension: 'Molde 8" (20 cm)',
+          targetProfitMargin: PreciseDecimal.fromString('40.0'),
+          status: AppConstants.recipeStatusActive,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: MultiRepositoryProvider(
+              providers: [
+                RepositoryProvider<IngredientRepository>.value(value: FakeIngredientRepository()),
+                RepositoryProvider<PackagingRepository>.value(value: FakePackagingRepository()),
+                RepositoryProvider<RecipeRepository>.value(value: fakeRecipeRepo),
+              ],
+              child: BlocProvider<RecipesBloc>.value(
+                value: bloc,
+                child: RecipeFormScreen(recipeToEdit: recipeWithOtroMold),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // The screen must render cleanly without throwing any assertion error
+        expect(tester.takeException(), isNull);
+        expect(find.byType(RecipeFormScreen), findsOneWidget);
+        expect(find.text('Flan Casero'), findsOneWidget);
+      });
+
+      testWidgets("RecipeFormScreen opens recipe with custom unknown moldType without Dropdown assertion error", (tester) async {
+        tester.view.physicalSize = const Size(360, 640);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() => tester.view.resetPhysicalSize());
+
+        final fakeRecipeRepo = FakeRecipeRepository();
+        final bloc = RecipesBloc(recipeRepository: fakeRecipeRepo);
+
+        final recipeWithCustomMold = Recipe(
+          id: 'recipe-custom-mold',
+          name: 'Tarta Especial',
+          yieldPortions: 6,
+          prepTimeMinutes: 30,
+          bakeTimeMinutes: 25,
+          moldType: 'Corazón Desmontable',
+          moldDimension: '22 cm',
+          targetProfitMargin: PreciseDecimal.fromString('40.0'),
+          status: AppConstants.recipeStatusActive,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: MultiRepositoryProvider(
+              providers: [
+                RepositoryProvider<IngredientRepository>.value(value: FakeIngredientRepository()),
+                RepositoryProvider<PackagingRepository>.value(value: FakePackagingRepository()),
+                RepositoryProvider<RecipeRepository>.value(value: fakeRecipeRepo),
+              ],
+              child: BlocProvider<RecipesBloc>.value(
+                value: bloc,
+                child: RecipeFormScreen(recipeToEdit: recipeWithCustomMold),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // The screen must render cleanly without throwing any assertion error
+        expect(tester.takeException(), isNull);
+        expect(find.byType(RecipeFormScreen), findsOneWidget);
+        expect(find.text('Tarta Especial'), findsOneWidget);
+      });
     });
   });
 }
