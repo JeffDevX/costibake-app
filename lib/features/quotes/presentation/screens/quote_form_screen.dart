@@ -220,18 +220,27 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
 
                       return ListTile(
                         key: Key('tile_recipe_${recipe.id}'),
-                        leading: const CircleAvatar(
-                          backgroundColor: AppColors.butterCream,
-                          child: Icon(Icons.cake, color: AppColors.primaryCaramel, size: 20),
+                        leading: CircleAvatar(
+                          backgroundColor: context.bakeryColors.surfaceHighlight,
+                          child: Icon(Icons.cake, color: context.bakeryColors.primaryCaramel, size: 20),
                         ),
-                        title: Text(recipe.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('${recipe.yieldPortions} porciones • ${recipe.moldDimension ?? 'Molde estándar'}'),
+                        title: Text(
+                          recipe.name,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: context.bakeryColors.textEspresso,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${recipe.yieldPortions} porciones • ${recipe.moldDimension ?? 'Molde estándar'}',
+                          style: TextStyle(color: context.bakeryColors.textMuted),
+                        ),
                         trailing: Text(
                           '${config.currencySymbol}${suggestedPrice.toStringAsFixed(2)}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.primaryDarkCaramel,
+                            color: context.bakeryColors.primaryDarkCaramel,
                           ),
                         ),
                         onTap: () {
@@ -476,6 +485,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.bakeryColors;
     final dateFormat = DateFormat('dd/MM/yyyy hh:mm a');
     final settingsState = context.watch<SettingsBloc>().state;
     final config = settingsState is SettingsLoaded ? settingsState.config : null;
@@ -484,8 +494,8 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.quoteToEdit == null ? 'Nueva Cotización' : 'Editar Cotización'),
-        backgroundColor: AppColors.butterCream,
-        foregroundColor: AppColors.primaryDarkCaramel,
+        backgroundColor: colors.butterCream,
+        foregroundColor: colors.primaryDarkCaramel,
         elevation: 0,
         actions: [
           IconButton(
@@ -503,22 +513,23 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
           children: [
             // 1. Client Card
             Card(
+              color: colors.surfaceCard,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: AppColors.borderSubtle),
+                side: BorderSide(color: colors.borderSubtle),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.person_outline, color: AppColors.primaryCaramel),
-                        SizedBox(width: 8),
+                        Icon(Icons.person_outline, color: colors.primaryCaramel),
+                        const SizedBox(width: 8),
                         Text(
                           'Datos del Cliente',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textEspresso),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textEspresso),
                         ),
                       ],
                     ),
@@ -558,22 +569,23 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
 
             // 2. Delivery & Event Details
             Card(
+              color: colors.surfaceCard,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: AppColors.borderSubtle),
+                side: BorderSide(color: colors.borderSubtle),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.event_note_outlined, color: AppColors.primaryCaramel),
-                        SizedBox(width: 8),
+                        Icon(Icons.event_note_outlined, color: colors.primaryCaramel),
+                        const SizedBox(width: 8),
                         Text(
                           'Entrega y Detalles',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textEspresso),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textEspresso),
                         ),
                       ],
                     ),
@@ -585,7 +597,7 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade400),
+                          border: Border.all(color: colors.borderWarm),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -593,15 +605,15 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.calendar_today, size: 18, color: AppColors.primaryCaramel),
+                                Icon(Icons.calendar_today, size: 18, color: colors.primaryCaramel),
                                 const SizedBox(width: 10),
                                 Text(
                                   dateFormat.format(_deliveryDate),
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textEspresso),
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: colors.textEspresso),
                                 ),
                               ],
                             ),
-                            const Text('Cambiar', style: TextStyle(color: AppColors.primaryDarkCaramel, fontWeight: FontWeight.w600)),
+                            Text('Cambiar', style: TextStyle(color: colors.primaryDarkCaramel, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       ),
@@ -645,9 +657,10 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
 
             // 3. Items Section
             Card(
+              color: colors.surfaceCard,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: AppColors.borderSubtle),
+                side: BorderSide(color: colors.borderSubtle),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -657,13 +670,13 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Pasteles e Ítems',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textEspresso),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textEspresso),
                         ),
                         Text(
                           '${_items.length} ${_items.length == 1 ? 'ítem' : 'ítems'}',
-                          style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                          style: TextStyle(color: colors.textMuted, fontSize: 12),
                         ),
                       ],
                     ),
@@ -679,8 +692,8 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                             icon: const Icon(Icons.cake, size: 18),
                             label: const Text('Receta Base'),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.primaryDarkCaramel,
-                              side: const BorderSide(color: AppColors.primaryCaramel),
+                              foregroundColor: colors.primaryDarkCaramel,
+                              side: BorderSide(color: colors.primaryCaramel),
                               padding: const EdgeInsets.symmetric(vertical: 10),
                             ),
                           ),
@@ -693,8 +706,8 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                             icon: const Icon(Icons.add_circle_outline, size: 18),
                             label: const Text('Ítem Extra'),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.primaryDarkCaramel,
-                              side: const BorderSide(color: AppColors.primaryCaramel),
+                              foregroundColor: colors.primaryDarkCaramel,
+                              side: BorderSide(color: colors.primaryCaramel),
                               padding: const EdgeInsets.symmetric(vertical: 10),
                             ),
                           ),
@@ -709,14 +722,14 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                         padding: const EdgeInsets.all(20),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color: colors.surfaceWarm,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
+                          border: Border.all(color: colors.borderSubtle),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Agregue pasteles de su recetario o ítems personalizados para comenzar.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                          style: TextStyle(color: colors.textMuted, fontSize: 13),
                         ),
                       )
                     else
@@ -724,26 +737,26 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: _items.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, __) => Divider(height: 1, color: colors.borderSubtle),
                         itemBuilder: (context, index) {
                           final item = _items[index];
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: Text(item.concept, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            title: Text(item.concept, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: colors.textEspresso)),
                             subtitle: Text(
                               '${item.quantity.toStringAsFixed(1)} x $currency${item.unitPrice.toStringAsFixed(2)}${item.notes != null ? ' • ${item.notes}' : ''}',
-                              style: const TextStyle(fontSize: 12),
+                              style: TextStyle(fontSize: 12, color: colors.textMuted),
                             ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   '$currency${item.total.toStringAsFixed(2)}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: colors.textEspresso),
                                 ),
                                 IconButton(
                                   key: Key('btn_remove_item_$index'),
-                                  icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                                  icon: Icon(Icons.delete_outline, size: 20, color: colors.costRed),
                                   onPressed: () => setState(() => _items.removeAt(index)),
                                 ),
                               ],
@@ -762,34 +775,34 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
             Card(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: AppColors.borderSubtle),
+                side: BorderSide(color: colors.borderSubtle),
               ),
-              color: AppColors.butterCream,
+              color: colors.surfaceHighlight,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
+                    Text(
                       'Resumen Financiero',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textEspresso),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textEspresso),
                     ),
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Subtotal:', style: TextStyle(fontSize: 14, color: AppColors.textEspresso)),
+                        Text('Subtotal:', style: TextStyle(fontSize: 14, color: colors.textEspresso)),
                         Text(
                           '$currency${_subtotal.toStringAsFixed(2)}',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: colors.textEspresso),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Expanded(
-                          child: Text(r'Descuento ($):', style: TextStyle(fontSize: 14, color: AppColors.textEspresso)),
+                        Expanded(
+                          child: Text(r'Descuento ($):', style: TextStyle(fontSize: 14, color: colors.textEspresso)),
                         ),
                         SizedBox(
                           width: 110,
@@ -808,22 +821,22 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                         ),
                       ],
                     ),
-                    const Divider(height: 24, thickness: 1, color: AppColors.borderSubtle),
+                    Divider(height: 24, thickness: 1, color: colors.borderSubtle),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('TOTAL COTIZACIÓN:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textEspresso)),
+                        Text('TOTAL COTIZACIÓN:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textEspresso)),
                         Text(
                           '$currency${_totalAmount.toStringAsFixed(2)}',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryDarkCaramel),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colors.primaryDarkCaramel),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        const Expanded(
-                          child: Text(r'Anticipo Recibido ($):', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green)),
+                        Expanded(
+                          child: Text(r'Anticipo Recibido ($):', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: colors.profitGreen)),
                         ),
                         SizedBox(
                           width: 110,
@@ -846,13 +859,13 @@ class _QuoteFormScreenState extends State<QuoteFormScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Saldo por Cobrar:', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textEspresso)),
+                        Text('Saldo por Cobrar:', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: colors.textEspresso)),
                         Text(
                           '$currency${_remainingBalance.toStringAsFixed(2)}',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: _remainingBalance > PreciseDecimal.zero ? Colors.red.shade800 : Colors.green.shade800,
+                            color: _remainingBalance > PreciseDecimal.zero ? colors.costRed : colors.profitGreen,
                           ),
                         ),
                       ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:costibake_app/core/theme/app_colors.dart';
 import 'package:costibake_app/core/utils/precise_decimal.dart';
 import 'package:costibake_app/features/quotes/domain/entities/quote.dart';
 import 'package:costibake_app/features/quotes/domain/entities/quote_item.dart';
@@ -91,7 +92,7 @@ void main() {
       mockSettingsRepo = _MockSettingsRepository();
     });
 
-    Widget createTestWidget({Widget? child}) {
+    Widget createTestWidget({Widget? child, ThemeMode themeMode = ThemeMode.light}) {
       return MultiRepositoryProvider(
         providers: [
           RepositoryProvider<QuoteRepository>.value(value: mockQuoteRepo),
@@ -108,6 +109,15 @@ void main() {
             ),
           ],
           child: MaterialApp(
+            theme: ThemeData(
+              brightness: Brightness.light,
+              extensions: const [BakeryColorsExtension.vainilla],
+            ),
+            darkTheme: ThemeData(
+              brightness: Brightness.dark,
+              extensions: const [BakeryColorsExtension.cacao],
+            ),
+            themeMode: themeMode,
             home: child ?? const QuotesScreen(),
           ),
         ),
@@ -235,6 +245,81 @@ void main() {
       expect(mockQuoteRepo.quotes.first.totalAmount, PreciseDecimal.fromString('65.00'));
       expect(mockQuoteRepo.quotes.first.depositAmount, PreciseDecimal.fromString('30.00'));
       expect(mockQuoteRepo.quotes.first.remainingBalance, PreciseDecimal.fromString('35.00'));
+    });
+
+    testWidgets('Prevents RenderFlex overflow when keyboard opens while searching (JEF-33)',
+        (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final sampleQuote = Quote(
+        id: 'quote-overflow-test',
+        clientName: 'Carla Gomez',
+        deliveryDate: DateTime(2026, 11, 20),
+        discount: PreciseDecimal.zero,
+        depositAmount: PreciseDecimal.zero,
+        status: QuoteStatus.pending,
+        items: const [],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      mockQuoteRepo.quotes.add(sampleQuote);
+
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      // Tap the search field and type a query that has no match
+      await tester.tap(find.byKey(const Key('txt_search_quotes')));
+      await tester.enterText(find.byKey(const Key('txt_search_quotes')), 'NoExisteCliente');
+
+      // Simulate keyboard open by reducing vertical space with viewInsets
+      tester.view.viewInsets = const FakeViewPadding(bottom: 340);
+      addTearDown(tester.view.resetViewInsets);
+
+      await tester.pumpAndSettle();
+
+      // No overflow exception should occur and empty state text should be visible/scrollable
+      expect(find.text('No se encontraron cotizaciones con este filtro o búsqueda'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Renders QuotesScreen and QuoteCard in Modo Cacao with dark styling (JEF-33)',
+        (tester) async {
+      final sampleQuote = Quote(
+        id: 'quote-cacao-test',
+        clientName: 'Donatella Pasteleria',
+        clientPhone: '5566778899',
+        eventNotes: 'Catering corporativo',
+        deliveryDate: DateTime(2026, 12, 10, 10, 0),
+        discount: PreciseDecimal.zero,
+        depositAmount: PreciseDecimal.fromString('100.00'),
+        status: QuoteStatus.confirmed,
+        items: [
+          QuoteItem(
+            id: 'it-cacao-1',
+            quoteId: 'quote-cacao-test',
+            concept: 'Bocadillos Cacao',
+            quantity: PreciseDecimal.fromString('50'),
+            unitPrice: PreciseDecimal.fromString('3.00'),
+          ),
+        ],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      mockQuoteRepo.quotes.add(sampleQuote);
+
+      await tester.pumpWidget(createTestWidget(themeMode: ThemeMode.dark));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cotizaciones y Pedidos'), findsOneWidget);
+      expect(find.text('Donatella Pasteleria'), findsOneWidget);
+      expect(find.text('Total: \$150.00'), findsOneWidget);
+      expect(find.text('Anticipo: \$100.00'), findsOneWidget);
+      expect(find.text('Saldo: \$50.00'), findsOneWidget);
+
+      // Verify no exceptions or layout failures under Modo Cacao
+      expect(tester.takeException(), isNull);
     });
   });
 }

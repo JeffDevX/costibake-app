@@ -100,8 +100,49 @@ class _QuotesScreenState extends State<QuotesScreen> {
     );
   }
 
+  Widget _buildFilterChip({
+    required Key key,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onSelected,
+    Color? accentColor,
+  }) {
+    final colors = context.bakeryColors;
+    final isCacao = context.isCacaoMode;
+    final activeColor = accentColor ?? colors.primaryCaramel;
+
+    return FilterChip(
+      key: key,
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          color: isSelected
+              ? (isCacao ? activeColor : colors.primaryDarkCaramel)
+              : colors.textMuted,
+        ),
+      ),
+      selected: isSelected,
+      onSelected: (_) => onSelected(),
+      backgroundColor: colors.surfaceCard,
+      selectedColor: isCacao
+          ? activeColor.withValues(alpha: 0.25)
+          : activeColor.withValues(alpha: 0.18),
+      checkmarkColor: isCacao ? activeColor : colors.primaryDarkCaramel,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: isSelected ? activeColor : colors.borderWarm,
+          width: isSelected ? 1.4 : 1.0,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colors = context.bakeryColors;
     final settingsState = context.watch<SettingsBloc>().state;
     final config = settingsState is SettingsLoaded
         ? settingsState.config
@@ -117,14 +158,14 @@ class _QuotesScreenState extends State<QuotesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cotizaciones y Pedidos'),
-        backgroundColor: AppColors.butterCream,
-        foregroundColor: AppColors.primaryDarkCaramel,
+        backgroundColor: colors.butterCream,
+        foregroundColor: colors.primaryDarkCaramel,
         elevation: 0,
       ),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('btn_add_quote'),
         onPressed: () => _openNewQuote(context),
-        backgroundColor: AppColors.primaryCaramel,
+        backgroundColor: colors.primaryCaramel,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text('Nueva Cotización'),
@@ -133,7 +174,7 @@ class _QuotesScreenState extends State<QuotesScreen> {
         children: [
           // Search & Filter Header
           Container(
-            color: AppColors.butterCream,
+            color: colors.butterCream,
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
             child: Column(
               children: [
@@ -141,12 +182,14 @@ class _QuotesScreenState extends State<QuotesScreen> {
                   key: const Key('txt_search_quotes'),
                   controller: _searchCtrl,
                   onChanged: _onSearchChanged,
+                  style: TextStyle(color: colors.textEspresso),
                   decoration: InputDecoration(
                     hintText: 'Buscar por cliente, notas o pastel...',
-                    prefixIcon: const Icon(Icons.search, color: AppColors.primaryCaramel),
+                    hintStyle: TextStyle(color: colors.textMuted),
+                    prefixIcon: Icon(Icons.search, color: colors.primaryCaramel),
                     suffixIcon: _searchCtrl.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
+                            icon: Icon(Icons.clear, size: 18, color: colors.textMuted),
                             onPressed: () {
                               _searchCtrl.clear();
                               _onSearchChanged('');
@@ -154,15 +197,19 @@ class _QuotesScreenState extends State<QuotesScreen> {
                           )
                         : null,
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: colors.surfaceWarm,
                     contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24),
-                      borderSide: const BorderSide(color: AppColors.borderSubtle),
+                      borderSide: BorderSide(color: colors.borderSubtle),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24),
-                      borderSide: const BorderSide(color: AppColors.borderSubtle),
+                      borderSide: BorderSide(color: colors.borderSubtle),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide(color: colors.primaryCaramel, width: 1.5),
                     ),
                   ),
                 ),
@@ -171,44 +218,44 @@ class _QuotesScreenState extends State<QuotesScreen> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      FilterChip(
+                      _buildFilterChip(
                         key: const Key('chip_filter_all'),
-                        label: const Text('Todas'),
-                        selected: _selectedStatus == null,
-                        onSelected: (_) => _onStatusFilterSelected(null),
-                        selectedColor: AppColors.primaryCaramel.withValues(alpha: 0.2),
+                        label: 'Todas',
+                        isSelected: _selectedStatus == null,
+                        onSelected: () => _onStatusFilterSelected(null),
+                        accentColor: colors.primaryCaramel,
                       ),
                       const SizedBox(width: 6),
-                      FilterChip(
+                      _buildFilterChip(
                         key: const Key('chip_filter_pending'),
-                        label: const Text('Pendientes'),
-                        selected: _selectedStatus == QuoteStatus.pending,
-                        onSelected: (_) => _onStatusFilterSelected(QuoteStatus.pending),
-                        selectedColor: Colors.orange.shade100,
+                        label: 'Pendientes',
+                        isSelected: _selectedStatus == QuoteStatus.pending,
+                        onSelected: () => _onStatusFilterSelected(QuoteStatus.pending),
+                        accentColor: colors.warningAmber,
                       ),
                       const SizedBox(width: 6),
-                      FilterChip(
+                      _buildFilterChip(
                         key: const Key('chip_filter_confirmed'),
-                        label: const Text('Confirmadas'),
-                        selected: _selectedStatus == QuoteStatus.confirmed,
-                        onSelected: (_) => _onStatusFilterSelected(QuoteStatus.confirmed),
-                        selectedColor: AppColors.primaryCaramel.withValues(alpha: 0.2),
+                        label: 'Confirmadas',
+                        isSelected: _selectedStatus == QuoteStatus.confirmed,
+                        onSelected: () => _onStatusFilterSelected(QuoteStatus.confirmed),
+                        accentColor: colors.primaryCaramel,
                       ),
                       const SizedBox(width: 6),
-                      FilterChip(
+                      _buildFilterChip(
                         key: const Key('chip_filter_delivered'),
-                        label: const Text('Entregadas'),
-                        selected: _selectedStatus == QuoteStatus.delivered,
-                        onSelected: (_) => _onStatusFilterSelected(QuoteStatus.delivered),
-                        selectedColor: Colors.green.shade100,
+                        label: 'Entregadas',
+                        isSelected: _selectedStatus == QuoteStatus.delivered,
+                        onSelected: () => _onStatusFilterSelected(QuoteStatus.delivered),
+                        accentColor: colors.profitGreen,
                       ),
                       const SizedBox(width: 6),
-                      FilterChip(
+                      _buildFilterChip(
                         key: const Key('chip_filter_cancelled'),
-                        label: const Text('Canceladas'),
-                        selected: _selectedStatus == QuoteStatus.cancelled,
-                        onSelected: (_) => _onStatusFilterSelected(QuoteStatus.cancelled),
-                        selectedColor: Colors.grey.shade300,
+                        label: 'Canceladas',
+                        isSelected: _selectedStatus == QuoteStatus.cancelled,
+                        onSelected: () => _onStatusFilterSelected(QuoteStatus.cancelled),
+                        accentColor: colors.textMuted,
                       ),
                     ],
                   ),
@@ -232,7 +279,7 @@ class _QuotesScreenState extends State<QuotesScreen> {
                       child: Text(
                         state.message,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.red),
+                        style: TextStyle(color: colors.costRed),
                       ),
                     ),
                   );
@@ -251,30 +298,30 @@ class _QuotesScreenState extends State<QuotesScreen> {
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(20),
-                                decoration: const BoxDecoration(
-                                  color: AppColors.butterCream,
+                                decoration: BoxDecoration(
+                                  color: colors.surfaceHighlight,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.request_quote_outlined,
                                   size: 56,
-                                  color: AppColors.primaryCaramel,
+                                  color: colors.primaryCaramel,
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              const Text(
+                              Text(
                                 'Aún no hay cotizaciones registradas',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.textEspresso,
+                                  color: colors.textEspresso,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 8),
-                              const Text(
+                              Text(
                                 'Cree presupuestos en segundos para sus clientes con sus recetas y compártalos por WhatsApp con comprobante digital.',
-                                style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+                                style: TextStyle(fontSize: 14, color: colors.textMuted),
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 20),
@@ -284,7 +331,7 @@ class _QuotesScreenState extends State<QuotesScreen> {
                                 icon: const Icon(Icons.add),
                                 label: const Text('Crear primera cotización'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryCaramel,
+                                  backgroundColor: colors.primaryCaramel,
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -296,17 +343,18 @@ class _QuotesScreenState extends State<QuotesScreen> {
                       );
                     }
 
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32.0),
+                    return Center(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.search_off, size: 48, color: AppColors.textMuted),
-                            SizedBox(height: 12),
+                            Icon(Icons.search_off, size: 48, color: colors.textMuted),
+                            const SizedBox(height: 12),
                             Text(
                               'No se encontraron cotizaciones con este filtro o búsqueda',
-                              style: TextStyle(color: AppColors.textMuted, fontSize: 15),
+                              style: TextStyle(color: colors.textMuted, fontSize: 15),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -316,6 +364,7 @@ class _QuotesScreenState extends State<QuotesScreen> {
                   }
 
                   return ListView.builder(
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: quotes.length,
                     itemBuilder: (context, index) {

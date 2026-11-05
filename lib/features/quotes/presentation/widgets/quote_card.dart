@@ -22,25 +22,34 @@ class QuoteCard extends StatelessWidget {
     required this.onDelete,
   });
 
-  Color _getStatusColor(QuoteStatus status) {
+  Color _getStatusColor(BuildContext context, QuoteStatus status) {
+    final colors = context.bakeryColors;
     switch (status) {
       case QuoteStatus.pending:
-        return Colors.orange.shade700;
+        return colors.warningAmber;
       case QuoteStatus.confirmed:
-        return AppColors.primaryCaramel;
+        return colors.primaryCaramel;
       case QuoteStatus.delivered:
-        return Colors.green.shade700;
+        return colors.profitGreen;
       case QuoteStatus.cancelled:
-        return Colors.grey.shade600;
+        return colors.textMuted;
     }
   }
 
-  Color _getStatusBgColor(QuoteStatus status) {
+  Color _getStatusBgColor(BuildContext context, QuoteStatus status) {
+    final colors = context.bakeryColors;
+    final isCacao = context.isCacaoMode;
+    final color = _getStatusColor(context, status);
+
+    if (isCacao) {
+      return color.withValues(alpha: 0.2);
+    }
+
     switch (status) {
       case QuoteStatus.pending:
         return Colors.orange.shade50;
       case QuoteStatus.confirmed:
-        return AppColors.butterCream;
+        return colors.butterCream;
       case QuoteStatus.delivered:
         return Colors.green.shade50;
       case QuoteStatus.cancelled:
@@ -50,16 +59,18 @@ class QuoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.bakeryColors;
     final dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
-    final statusColor = _getStatusColor(quote.status);
-    final statusBg = _getStatusBgColor(quote.status);
+    final statusColor = _getStatusColor(context, quote.status);
+    final statusBg = _getStatusBgColor(context, quote.status);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      elevation: 1.5,
+      elevation: context.isCacaoMode ? 0 : 1.5,
+      color: colors.surfaceCard,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.borderSubtle, width: 0.8),
+        side: BorderSide(color: colors.borderSubtle, width: 0.8),
       ),
       child: InkWell(
         onTap: onTap,
@@ -76,13 +87,13 @@ class QuoteCard extends StatelessWidget {
                   Expanded(
                     child: Row(
                       children: [
-                        const CircleAvatar(
+                        CircleAvatar(
                           radius: 18,
-                          backgroundColor: AppColors.butterCream,
+                          backgroundColor: colors.surfaceHighlight,
                           child: Icon(
                             Icons.person,
                             size: 20,
-                            color: AppColors.primaryCaramel,
+                            color: colors.primaryCaramel,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -92,10 +103,10 @@ class QuoteCard extends StatelessWidget {
                             children: [
                               Text(
                                 quote.clientName,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: AppColors.textEspresso,
+                                  color: colors.textEspresso,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -103,9 +114,9 @@ class QuoteCard extends StatelessWidget {
                               if (quote.clientPhone != null && quote.clientPhone!.isNotEmpty)
                                 Text(
                                   quote.clientPhone!,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: AppColors.textMuted,
+                                    color: colors.textMuted,
                                   ),
                                 ),
                             ],
@@ -119,7 +130,7 @@ class QuoteCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: statusBg,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: statusColor.withValues(alpha: 0.5)),
+                      border: Border.all(color: statusColor.withValues(alpha: context.isCacaoMode ? 0.4 : 0.5)),
                     ),
                     child: Text(
                       quote.status.label,
@@ -131,7 +142,7 @@ class QuoteCard extends StatelessWidget {
                     ),
                   ),
                   PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, color: AppColors.textMuted),
+                    icon: Icon(Icons.more_vert, color: colors.textMuted),
                     tooltip: 'Opciones de cotización',
                     onSelected: (action) {
                       if (action == 'status_pending') onStatusChanged(QuoteStatus.pending);
@@ -151,13 +162,13 @@ class QuoteCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'status_confirmed',
                         child: Row(
                           children: [
-                            Icon(Icons.check_circle_outline, size: 18, color: AppColors.primaryCaramel),
-                            SizedBox(width: 8),
-                            Text('Marcar como Confirmada'),
+                            Icon(Icons.check_circle_outline, size: 18, color: colors.primaryCaramel),
+                            const SizedBox(width: 8),
+                            const Text('Marcar como Confirmada'),
                           ],
                         ),
                       ),
@@ -202,14 +213,18 @@ class QuoteCard extends StatelessWidget {
               // Delivery Date & Items Summary
               Row(
                 children: [
-                  const Icon(Icons.event_outlined, size: 16, color: AppColors.primaryDarkCaramel),
+                  Icon(Icons.event_outlined, size: 16, color: colors.primaryCaramel),
                   const SizedBox(width: 6),
-                  Text(
-                    'Entrega: ${dateFormat.format(quote.deliveryDate)}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primaryDarkCaramel,
+                  Expanded(
+                    child: Text(
+                      'Entrega: ${dateFormat.format(quote.deliveryDate)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: colors.primaryDarkCaramel,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -219,55 +234,59 @@ class QuoteCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   quote.items.map((i) => '${i.quantity.toStringAsFixed(0)}x ${i.concept}').join(' • '),
-                  style: const TextStyle(fontSize: 12, color: AppColors.textEspresso),
+                  style: TextStyle(fontSize: 12, color: colors.textEspresso),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
 
-              const Divider(height: 20, color: AppColors.borderSubtle),
+              Divider(height: 20, color: colors.borderSubtle),
 
               // Financial row & WhatsApp Share button
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Total: ${config.currencySymbol}${quote.totalAmount.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textEspresso,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Total: ${config.currencySymbol}${quote.totalAmount.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: colors.textEspresso,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Text(
-                            'Anticipo: ${config.currencySymbol}${quote.depositAmount.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.green.shade800,
-                              fontWeight: FontWeight.w500,
+                        const SizedBox(height: 2),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 2,
+                          children: [
+                            Text(
+                              'Anticipo: ${config.currencySymbol}${quote.depositAmount.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colors.profitGreen,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Saldo: ${config.currencySymbol}${quote.remainingBalance.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: quote.remainingBalance > PreciseDecimal.zero
-                                  ? Colors.red.shade800
-                                  : Colors.green.shade800,
+                            Text(
+                              'Saldo: ${config.currencySymbol}${quote.remainingBalance.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: quote.remainingBalance > PreciseDecimal.zero
+                                    ? colors.costRed
+                                    : colors.profitGreen,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
 
                   // Share CTA
                   ElevatedButton.icon(

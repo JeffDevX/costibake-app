@@ -18,23 +18,29 @@ class QuoteShareDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.bakeryColors;
     final messagePreview = QuoteReceiptGenerator.formatWhatsAppMessage(
       quote: quote,
       config: config,
     );
 
     return AlertDialog(
-      title: const Row(
+      backgroundColor: colors.surfaceCard,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: colors.borderSubtle),
+      ),
+      title: Row(
         children: [
-          Icon(Icons.share, color: AppColors.primaryCaramel),
-          SizedBox(width: 8),
+          Icon(Icons.share, color: colors.primaryCaramel),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Compartir Cotización',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textEspresso,
+                color: colors.textEspresso,
               ),
             ),
           ),
@@ -49,7 +55,7 @@ class QuoteShareDialog extends StatelessWidget {
             children: [
               Text(
                 'Cliente: ${quote.clientName}',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textEspresso),
+                style: TextStyle(fontWeight: FontWeight.bold, color: colors.textEspresso),
               ),
               const SizedBox(height: 12),
 
@@ -64,9 +70,9 @@ class QuoteShareDialog extends StatelessWidget {
                   );
                   if (!launched && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('No se pudo abrir WhatsApp automáticamente. Mensaje copiado al portapapeles.'),
-                        backgroundColor: AppColors.primaryCaramel,
+                      SnackBar(
+                        content: const Text('No se pudo abrir WhatsApp automáticamente. Mensaje copiado al portapapeles.'),
+                        backgroundColor: colors.primaryCaramel,
                       ),
                     );
                     await Clipboard.setData(ClipboardData(text: messagePreview));
@@ -97,7 +103,7 @@ class QuoteShareDialog extends StatelessWidget {
                 icon: const Icon(Icons.picture_as_pdf, size: 20),
                 label: const Text('Compartir Recibo en PDF'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryCaramel,
+                  backgroundColor: colors.primaryCaramel,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -120,10 +126,10 @@ class QuoteShareDialog extends StatelessWidget {
                     name: 'Cotizacion_${quote.clientName}.pdf',
                   );
                 },
-                icon: const Icon(Icons.print, size: 20, color: AppColors.primaryDarkCaramel),
-                label: const Text('Ver / Imprimir Comprobante', style: TextStyle(color: AppColors.primaryDarkCaramel)),
+                icon: Icon(Icons.print, size: 20, color: colors.primaryDarkCaramel),
+                label: Text('Ver / Imprimir Comprobante', style: TextStyle(color: colors.primaryDarkCaramel)),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.primaryCaramel),
+                  side: BorderSide(color: colors.primaryCaramel),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
@@ -135,12 +141,13 @@ class QuoteShareDialog extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Vista previa del mensaje:',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textMuted),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: colors.textMuted),
                   ),
                   TextButton.icon(
                     key: const Key('btn_copy_quote_text'),
+                    style: TextButton.styleFrom(foregroundColor: colors.primaryCaramel),
                     onPressed: () async {
                       await Clipboard.setData(ClipboardData(text: messagePreview));
                       if (context.mounted) {
@@ -160,13 +167,13 @@ class QuoteShareDialog extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.butterCream,
+                  color: colors.surfaceWarm,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.borderSubtle),
+                  border: Border.all(color: colors.borderSubtle),
                 ),
                 child: Text(
                   messagePreview,
-                  style: const TextStyle(fontSize: 11, color: AppColors.textEspresso, height: 1.3),
+                  style: TextStyle(fontSize: 11, color: colors.textEspresso, height: 1.3),
                 ),
               ),
             ],
@@ -175,6 +182,7 @@ class QuoteShareDialog extends StatelessWidget {
       ),
       actions: [
         TextButton(
+          style: TextButton.styleFrom(foregroundColor: colors.primaryCaramel),
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cerrar'),
         ),
