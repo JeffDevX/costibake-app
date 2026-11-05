@@ -488,8 +488,8 @@ class _RecipesScreenState extends State<RecipesScreen> {
                     child: recipes.isEmpty
                         ? (allRecipesCount == 0
                             ? Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(32),
+                                child: SingleChildScrollView(
+                                  padding: const EdgeInsets.all(24),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -513,6 +513,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                             color: AppColors.textMuted,
                                             fontSize: 14),
                                       ),
+                                      const SizedBox(height: 20),
                                       Wrap(
                                         alignment: WrapAlignment.center,
                                         spacing: 12,
@@ -557,10 +558,22 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                 ),
                               )
                             : const Center(
-                                child: Text(
-                                  'No se encontraron recetas con los filtros aplicados.',
-                                  style: TextStyle(
-                                      color: AppColors.textMuted, fontSize: 16),
+                                child: SingleChildScrollView(
+                                  padding: EdgeInsets.all(24),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.search_off,
+                                          size: 48, color: AppColors.textMuted),
+                                      SizedBox(height: 12),
+                                      Text(
+                                        'No se encontraron recetas con los filtros aplicados.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                            color: AppColors.textMuted, fontSize: 16),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ))
                         : ListView.builder(

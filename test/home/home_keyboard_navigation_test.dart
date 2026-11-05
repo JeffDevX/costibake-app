@@ -201,5 +201,112 @@ void main() {
       // Should return to Catálogo
       expect(find.text('Catálogo de Recursos'), findsOneWidget);
     });
+
+    testWidgets('Tapping search bar in CatalogScreen with keyboard opening does not overflow', (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      final searchField = find.byType(TextField).first;
+      await tester.tap(searchField);
+      await tester.pump();
+
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Tapping search bar in RecipesScreen with keyboard opening does not overflow', (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      // Go to Recetas tab
+      await tester.tap(find.byIcon(Icons.menu_book_outlined));
+      await tester.pumpAndSettle();
+
+      final searchField = find.byType(TextField).first;
+      await tester.tap(searchField);
+      await tester.pump();
+
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Tapping search bar in QuotesScreen with keyboard opening does not overflow', (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      // Go to Cotizar tab
+      await tester.tap(find.byIcon(Icons.request_quote_outlined));
+      await tester.pumpAndSettle();
+
+      final searchField = find.byType(TextField).first;
+      await tester.tap(searchField);
+      await tester.pump();
+
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+    testWidgets('Searching without results in CatalogScreen with keyboard open does not overflow', (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      final searchField = find.byType(TextField).first;
+      await tester.tap(searchField);
+      await tester.enterText(searchField, 'InsumoInexistente');
+      await tester.pump();
+
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Searching without results in RecipesScreen with keyboard open does not overflow', (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.menu_book_outlined));
+      await tester.pumpAndSettle();
+
+      final searchField = find.byType(TextField).first;
+      await tester.tap(searchField);
+      await tester.enterText(searchField, 'RecetaInexistente');
+      await tester.pump();
+
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
   });
 }

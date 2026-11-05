@@ -432,37 +432,41 @@ class _CatalogScreenState extends State<CatalogScreen>
     // Si el catálogo está completamente vacío en SQLite
     if (state.allIngredients.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.inventory_2_outlined,
-              size: 64,
-              color: AppColors.textMuted,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'No hay insumos registrados.\nAgrega compras a granel para comenzar.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.inventory_2_outlined,
+                size: 64,
                 color: AppColors.textMuted,
-                fontSize: 16,
               ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const IngredientFormScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Registrar Primer Insumo'),
-            ),
-          ],
+              const SizedBox(height: 16),
+              const Text(
+                'No hay insumos registrados.\nAgrega compras a granel para comenzar.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const IngredientFormScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Registrar Primer Insumo'),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -600,37 +604,41 @@ class _CatalogScreenState extends State<CatalogScreen>
     // Si el catálogo está completamente vacío en SQLite
     if (state.allPackagings.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.all_inbox_outlined,
-              size: 64,
-              color: AppColors.textMuted,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'No hay empaques registrados.\nRegistra cajas, domos y blondas para costear.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.all_inbox_outlined,
+                size: 64,
                 color: AppColors.textMuted,
-                fontSize: 16,
               ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const PackagingFormScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Registrar Primer Empaque'),
-            ),
-          ],
+              const SizedBox(height: 16),
+              const Text(
+                'No hay empaques registrados.\nRegistra cajas, domos y blondas para costear.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PackagingFormScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Registrar Primer Empaque'),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -773,9 +781,10 @@ class _CatalogScreenState extends State<CatalogScreen>
     required VoidCallback onCreatePressed,
   }) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(
