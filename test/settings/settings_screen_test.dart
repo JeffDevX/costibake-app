@@ -279,5 +279,42 @@ void main() {
       final scrollWidget = tester.widget<SingleChildScrollView>(scrollFinder);
       expect(scrollWidget.keyboardDismissBehavior, equals(ScrollViewKeyboardDismissBehavior.onDrag));
     });
+
+    testWidgets('Toggles theme mode between Modo Vainilla and Modo Cacao', (tester) async {
+      await ensureLoaded(tester);
+      await tester.pumpWidget(buildTestable(const SettingsScreen()));
+      await tester.pump();
+
+      final vainillaBtn = find.byKey(const Key('btn_theme_mode_vainilla'));
+      final cacaoBtn = find.byKey(const Key('btn_theme_mode_cacao'));
+
+      expect(vainillaBtn, findsOneWidget);
+      expect(cacaoBtn, findsOneWidget);
+
+      // Default is Vainilla
+      expect(repo.config.themeMode, equals('VAINILLA'));
+
+      // Tap Modo Cacao
+      await tester.ensureVisible(cacaoBtn);
+      await tester.tap(cacaoBtn);
+      await tester.runAsync(() async {
+        await Future.delayed(const Duration(milliseconds: 10));
+      });
+      await tester.pumpAndSettle();
+
+      // Verify BLoC and repo updated to CACAO
+      expect(repo.config.themeMode, equals('CACAO'));
+
+      // Tap Modo Vainilla
+      await tester.ensureVisible(vainillaBtn);
+      await tester.tap(vainillaBtn);
+      await tester.runAsync(() async {
+        await Future.delayed(const Duration(milliseconds: 10));
+      });
+      await tester.pumpAndSettle();
+
+      // Verify BLoC and repo updated back to VAINILLA
+      expect(repo.config.themeMode, equals('VAINILLA'));
+    });
   });
 }

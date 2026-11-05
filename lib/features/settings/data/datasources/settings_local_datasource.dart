@@ -33,6 +33,7 @@ class SettingsLocalDataSourceImpl implements SettingsLocalDataSource {
             PreciseDecimal.fromDouble(AppConstants.defaultLaborRatePerHour),
         overheadPercentage:
             PreciseDecimal.fromDouble(AppConstants.defaultOverheadPercentage),
+        themeMode: 'VAINILLA',
         updatedAt: DateTime.now(),
       );
       await saveBusinessConfig(defaultConfig);

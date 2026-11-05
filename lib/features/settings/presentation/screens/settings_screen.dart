@@ -203,7 +203,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _buildIdentityCard(),
                       const SizedBox(height: 16),
 
-                      // Sección 2: Parámetros Financieros (BR-CFG-01, BR-CFG-02)
+                      // Sección 2: Apariencia y Tema (Modo Vainilla & Modo Cacao)
+                      _buildAppearanceCard(config),
+                      const SizedBox(height: 16),
+
+                      // Sección 3: Parámetros Financieros (BR-CFG-01, BR-CFG-02)
                       _buildFinancialCard(),
                       const SizedBox(height: 20),
 
@@ -324,6 +328,178 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 }
                 return null;
               },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppearanceCard(BusinessConfig config) {
+    final isCacao = config.themeMode.toUpperCase() == 'CACAO';
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.palette_outlined,
+                  color: context.bakeryColors.primaryCaramel,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Apariencia y Tema del Taller',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: context.bakeryColors.textEspresso,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Selecciona la experiencia visual de CostiBake inspirada en repostería artesanal.',
+              style: TextStyle(
+                fontSize: 12.5,
+                color: context.bakeryColors.textMuted,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                // Modo Vainilla
+                Expanded(
+                  child: _buildThemeSelectionTile(
+                    key: const Key('btn_theme_mode_vainilla'),
+                    title: 'Modo Vainilla',
+                    subtitle: 'Pastelería & Crema',
+                    isSelected: !isCacao,
+                    icon: Icons.light_mode,
+                    cardBg: AppColors.surfaceWarm,
+                    accentColor: AppColors.primaryCaramel,
+                    textColor: AppColors.textEspresso,
+                    onTap: () {
+                      if (isCacao) {
+                        final updated = config.copyWith(
+                          themeMode: 'VAINILLA',
+                          updatedAt: DateTime.now(),
+                        );
+                        context.read<SettingsBloc>().add(UpdateSettings(updated));
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Modo Cacao
+                Expanded(
+                  child: _buildThemeSelectionTile(
+                    key: const Key('btn_theme_mode_cacao'),
+                    title: 'Modo Cacao',
+                    subtitle: 'Trufa & Chocolate',
+                    isSelected: isCacao,
+                    icon: Icons.dark_mode,
+                    cardBg: AppColors.cacaoSurfaceWarm,
+                    accentColor: AppColors.cacaoPrimaryCaramel,
+                    textColor: AppColors.cacaoTextEspresso,
+                    onTap: () {
+                      if (!isCacao) {
+                        final updated = config.copyWith(
+                          themeMode: 'CACAO',
+                          updatedAt: DateTime.now(),
+                        );
+                        context.read<SettingsBloc>().add(UpdateSettings(updated));
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeSelectionTile({
+    required Key key,
+    required String title,
+    required String subtitle,
+    required bool isSelected,
+    required IconData icon,
+    required Color cardBg,
+    required Color accentColor,
+    required Color textColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      key: key,
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? accentColor : context.bakeryColors.borderWarm,
+            width: isSelected ? 2.2 : 1.0,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: accentColor.withValues(alpha: 0.25),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(icon, color: accentColor, size: 22),
+                if (isSelected)
+                  Icon(Icons.check_circle, color: accentColor, size: 20)
+                else
+                  Icon(
+                    Icons.radio_button_unchecked,
+                    color: context.bakeryColors.textMuted.withValues(alpha: 0.5),
+                    size: 20,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: textColor,
+                ),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  color: textColor.withValues(alpha: 0.75),
+                ),
+              ),
             ),
           ],
         ),

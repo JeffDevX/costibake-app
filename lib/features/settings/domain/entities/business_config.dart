@@ -7,6 +7,7 @@ class BusinessConfig extends Equatable {
   final String currencySymbol;
   final PreciseDecimal laborHourlyRate;
   final PreciseDecimal overheadPercentage;
+  final String themeMode;
   final DateTime updatedAt;
 
   const BusinessConfig({
@@ -15,6 +16,7 @@ class BusinessConfig extends Equatable {
     required this.currencySymbol,
     required this.laborHourlyRate,
     required this.overheadPercentage,
+    this.themeMode = 'VAINILLA',
     required this.updatedAt,
   });
 
@@ -24,6 +26,7 @@ class BusinessConfig extends Equatable {
     String? currencySymbol,
     PreciseDecimal? laborHourlyRate,
     PreciseDecimal? overheadPercentage,
+    String? themeMode,
     DateTime? updatedAt,
   }) {
     return BusinessConfig(
@@ -32,6 +35,7 @@ class BusinessConfig extends Equatable {
       currencySymbol: currencySymbol ?? this.currencySymbol,
       laborHourlyRate: laborHourlyRate ?? this.laborHourlyRate,
       overheadPercentage: overheadPercentage ?? this.overheadPercentage,
+      themeMode: themeMode ?? this.themeMode,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
@@ -43,6 +47,7 @@ class BusinessConfig extends Equatable {
         currencySymbol,
         laborHourlyRate,
         overheadPercentage,
+        themeMode,
         updatedAt,
       ];
 }

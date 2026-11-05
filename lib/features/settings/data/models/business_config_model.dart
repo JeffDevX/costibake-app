@@ -8,6 +8,7 @@ class BusinessConfigModel extends BusinessConfig {
     required super.currencySymbol,
     required super.laborHourlyRate,
     required super.overheadPercentage,
+    super.themeMode = 'VAINILLA',
     required super.updatedAt,
   });
 
@@ -18,6 +19,7 @@ class BusinessConfigModel extends BusinessConfig {
       currencySymbol: entity.currencySymbol,
       laborHourlyRate: entity.laborHourlyRate,
       overheadPercentage: entity.overheadPercentage,
+      themeMode: entity.themeMode,
       updatedAt: entity.updatedAt,
     );
   }
@@ -31,6 +33,7 @@ class BusinessConfigModel extends BusinessConfig {
           PreciseDecimal.fromString(map['tarifa_hora_mano_obra'] as String),
       overheadPercentage: PreciseDecimal.fromString(
           map['porcentaje_overhead_indirectos'] as String),
+      themeMode: (map['modo_tema'] as String?) ?? 'VAINILLA',
       updatedAt: DateTime.parse(map['fecha_actualizacion'] as String),
     );
   }
@@ -42,6 +45,7 @@ class BusinessConfigModel extends BusinessConfig {
       'moneda_simbolo': currencySymbol,
       'tarifa_hora_mano_obra': laborHourlyRate.toStringAsFixed(4),
       'porcentaje_overhead_indirectos': overheadPercentage.toStringAsFixed(4),
+      'modo_tema': themeMode,
       'fecha_actualizacion': updatedAt.toIso8601String(),
     };
   }

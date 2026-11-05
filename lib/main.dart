@@ -17,6 +17,7 @@ import 'features/settings/data/repositories/settings_repository_impl.dart';
 import 'features/settings/domain/repositories/settings_repository.dart';
 import 'features/settings/presentation/bloc/settings_bloc.dart';
 import 'features/settings/presentation/bloc/settings_event.dart';
+import 'features/settings/presentation/bloc/settings_state.dart';
 import 'core/services/ai_config_service.dart';
 import 'features/recipes/data/services/gemini_ai_recipe_extractor.dart';
 import 'features/recipes/domain/services/ai_recipe_extractor.dart';
@@ -85,18 +86,28 @@ class CostiBakeApp extends StatelessWidget {
             )..add(const LoadQuotes()),
           ),
         ],
-        child: MaterialApp(
-          title: AppConstants.appName,
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme,
-          builder: (context, child) {
-            return GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-              child: child,
+        child: BlocBuilder<SettingsBloc, SettingsState>(
+          builder: (context, state) {
+            final themeModeStr = state is SettingsLoaded
+                ? state.config.themeMode
+                : 'VAINILLA';
+            final isCacao = themeModeStr.toUpperCase() == 'CACAO';
+            return MaterialApp(
+              title: AppConstants.appName,
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.vainillaTheme,
+              darkTheme: AppTheme.cacaoTheme,
+              themeMode: isCacao ? ThemeMode.dark : ThemeMode.light,
+              builder: (context, child) {
+                return GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                  child: child,
+                );
+              },
+              home: const HomeScreen(),
             );
           },
-          home: const HomeScreen(),
         ),
       ),
     );

@@ -68,36 +68,36 @@ class _HomeScreenState extends State<HomeScreen> {
                     selectedIndex: _currentIndex,
                     onDestinationSelected: _navigateToTab,
                     labelType: NavigationRailLabelType.all,
-                    selectedIconTheme: const IconThemeData(
-                      color: AppColors.primaryCaramel,
+                    selectedIconTheme: IconThemeData(
+                      color: context.bakeryColors.primaryCaramel,
                     ),
-                    selectedLabelTextStyle: const TextStyle(
-                      color: AppColors.primaryCaramel,
+                    selectedLabelTextStyle: TextStyle(
+                      color: context.bakeryColors.primaryCaramel,
                       fontWeight: FontWeight.bold,
                     ),
-                    unselectedIconTheme: const IconThemeData(
-                      color: AppColors.textMuted,
+                    unselectedIconTheme: IconThemeData(
+                      color: context.bakeryColors.textMuted,
                     ),
-                    unselectedLabelTextStyle: const TextStyle(
-                      color: AppColors.textMuted,
+                    unselectedLabelTextStyle: TextStyle(
+                      color: context.bakeryColors.textMuted,
                     ),
-                    backgroundColor: AppColors.butterCream,
-                    leading: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: context.bakeryColors.butterCream,
+                    leading: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Column(
                         children: [
                           Icon(
                             Icons.bakery_dining,
-                            size: 36,
-                            color: AppColors.primaryCaramel,
+                            size: 38,
+                            color: context.bakeryColors.primaryCaramel,
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
                             'CostiBake',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 12.5,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primaryDarkCaramel,
+                              color: context.bakeryColors.primaryDarkCaramel,
                             ),
                           ),
                         ],
@@ -131,10 +131,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                  const VerticalDivider(
+                  VerticalDivider(
                     thickness: 1,
                     width: 1,
-                    color: AppColors.borderSubtle,
+                    color: context.bakeryColors.borderSubtle,
                   ),
                   Expanded(
                     child: IndexedStack(
@@ -153,39 +153,51 @@ class _HomeScreenState extends State<HomeScreen> {
               index: _currentIndex,
               children: _screens,
             ),
-            bottomNavigationBar: BottomNavigationBar(
-              currentIndex: _currentIndex,
-              onTap: _navigateToTab,
-              selectedItemColor: AppColors.primaryCaramel,
-              unselectedItemColor: AppColors.textMuted,
-              type: BottomNavigationBarType.fixed,
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.inventory_2_outlined),
-                  activeIcon: Icon(Icons.inventory_2),
-                  label: 'Catálogo',
+            bottomNavigationBar: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: context.bakeryColors.borderWarm.withValues(alpha: 0.5),
+                    width: 1,
+                  ),
                 ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.menu_book_outlined),
-                  activeIcon: Icon(Icons.menu_book),
-                  label: 'Recetas',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.calculate_outlined),
-                  activeIcon: Icon(Icons.calculate),
-                  label: 'Costeo',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.request_quote_outlined),
-                  activeIcon: Icon(Icons.request_quote),
-                  label: 'Cotizar',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.settings_outlined),
-                  activeIcon: Icon(Icons.settings),
-                  label: 'Ajustes',
-                ),
-              ],
+              ),
+              child: BottomNavigationBar(
+                currentIndex: _currentIndex,
+                onTap: _navigateToTab,
+                backgroundColor: context.bakeryColors.surfaceCard,
+                selectedItemColor: context.bakeryColors.primaryCaramel,
+                unselectedItemColor: context.bakeryColors.textMuted,
+                type: BottomNavigationBarType.fixed,
+                elevation: 8,
+                items: const [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.inventory_2_outlined),
+                    activeIcon: Icon(Icons.inventory_2),
+                    label: 'Catálogo',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.menu_book_outlined),
+                    activeIcon: Icon(Icons.menu_book),
+                    label: 'Recetas',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.calculate_outlined),
+                    activeIcon: Icon(Icons.calculate),
+                    label: 'Costeo',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.request_quote_outlined),
+                    activeIcon: Icon(Icons.request_quote),
+                    label: 'Cotizar',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.settings_outlined),
+                    activeIcon: Icon(Icons.settings),
+                    label: 'Ajustes',
+                  ),
+                ],
+              ),
             ),
           );
         },

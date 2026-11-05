@@ -141,6 +141,12 @@ class AppDatabase {
         'ALTER TABLE ${DatabaseTables.tableEmpaque} ADD COLUMN eliminado INTEGER NOT NULL DEFAULT 0;',
       );
     } catch (_) {}
+
+    try {
+      await db.execute(
+        'ALTER TABLE ${DatabaseTables.tableConfiguracionNegocio} ADD COLUMN modo_tema TEXT NOT NULL DEFAULT "VAINILLA";',
+      );
+    } catch (_) {}
   }
 
   static Future<void> _insertDefaultConfiguration(DatabaseExecutor db) async {
@@ -154,6 +160,7 @@ class AppDatabase {
             AppConstants.defaultLaborRatePerHour.toStringAsFixed(4),
         'porcentaje_overhead_indirectos':
             AppConstants.defaultOverheadPercentage.toStringAsFixed(4),
+        'modo_tema': 'VAINILLA',
         'fecha_actualizacion': DateTime.now().toIso8601String(),
       },
       conflictAlgorithm: ConflictAlgorithm.replace,

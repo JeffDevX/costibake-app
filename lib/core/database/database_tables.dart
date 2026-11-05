@@ -112,6 +112,7 @@ class DatabaseTables {
       moneda_simbolo TEXT NOT NULL DEFAULT '\$',
       tarifa_hora_mano_obra TEXT NOT NULL DEFAULT '10.0000',
       porcentaje_overhead_indirectos TEXT NOT NULL DEFAULT '15.0000',
+      modo_tema TEXT NOT NULL DEFAULT 'VAINILLA',
       fecha_actualizacion TEXT NOT NULL
     );
   ''';
