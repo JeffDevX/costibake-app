@@ -258,6 +258,7 @@ class _CatalogScreenState extends State<CatalogScreen>
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         onPressed: () {
           final query = _searchController.text.trim();
           Navigator.push(
@@ -307,6 +308,10 @@ class _CatalogScreenState extends State<CatalogScreen>
                 height: 50,
                 child: TextField(
                   controller: _searchController,
+                  style: TextStyle(
+                    color: context.bakeryColors.textEspresso,
+                    fontSize: 14,
+                  ),
                   onChanged: (val) {
                     context.read<CatalogBloc>().add(
                           FilterCatalog(query: val),
@@ -317,15 +322,21 @@ class _CatalogScreenState extends State<CatalogScreen>
                     hintText: isPackagingTab
                         ? 'Buscar empaques, domos, cajas...'
                         : 'Buscar insumos, harinas, lácteos...',
-                    prefixIcon: const Icon(
+                    hintStyle: TextStyle(
+                      color: context.isCacaoMode
+                          ? const Color(0xFFD4C3B3)
+                          : context.bakeryColors.textMuted,
+                      fontSize: 14,
+                    ),
+                    prefixIcon: Icon(
                       Icons.search,
-                      color: AppColors.primaryCaramel,
+                      color: context.bakeryColors.primaryCaramel,
                     ),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.clear,
-                              color: AppColors.textMuted,
+                              color: context.bakeryColors.textMuted,
                             ),
                             tooltip: 'Limpiar búsqueda',
                             onPressed: () {
@@ -342,19 +353,19 @@ class _CatalogScreenState extends State<CatalogScreen>
                       vertical: 12,
                     ),
                     filled: true,
-                    fillColor: AppColors.surfaceCard,
+                    fillColor: context.bakeryColors.surfaceCard,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.borderWarm),
+                      borderSide: BorderSide(color: context.bakeryColors.borderWarm),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.borderWarm),
+                      borderSide: BorderSide(color: context.bakeryColors.borderWarm),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: AppColors.primaryCaramel,
+                      borderSide: BorderSide(
+                        color: context.bakeryColors.primaryCaramel,
                         width: 1.5,
                       ),
                     ),

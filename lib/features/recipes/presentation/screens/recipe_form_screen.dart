@@ -1802,10 +1802,11 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
         ),
       ),
       bottomNavigationBar: Container(
+        key: const Key('recipe_form_bottom_bar'),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(
-          color: AppColors.butterCream,
-          border: Border(top: BorderSide(color: AppColors.borderSubtle)),
+        decoration: BoxDecoration(
+          color: context.bakeryColors.surfaceCard,
+          border: Border(top: BorderSide(color: context.bakeryColors.borderSubtle)),
         ),
         child: SafeArea(
           child: Row(
@@ -1816,9 +1817,12 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Costo Integral (CTP)',
-                      style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: context.bakeryColors.textMuted,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1827,10 +1831,10 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                       alignment: Alignment.centerLeft,
                       child: Text(
                         '${_effectiveBusinessConfig.currencySymbol}${_currentBreakdown.totalProductionCost.toStringAsFixed(2)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textEspresso,
+                          color: context.bakeryColors.textEspresso,
                         ),
                       ),
                     ),
@@ -1839,9 +1843,9 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                       alignment: Alignment.centerLeft,
                       child: Text(
                         '${_effectiveBusinessConfig.currencySymbol}${_currentBreakdown.costPerPortion.toStringAsFixed(2)} / porción',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: AppColors.primaryDarkCaramel,
+                          color: context.bakeryColors.primaryDarkCaramel,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -1858,6 +1862,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                     key: const Key('btn_save_recipe'),
                     onPressed: _saveRecipe,
                     style: ElevatedButton.styleFrom(
+                      backgroundColor: context.bakeryColors.primaryCaramel,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                     ),
                     icon: const Icon(Icons.save, size: 20),
@@ -2226,11 +2232,19 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                             fontWeight: isSelected
                                 ? FontWeight.bold
                                 : FontWeight.normal,
+                            color: isSelected
+                                ? context.bakeryColors.primaryDarkCaramel
+                                : context.bakeryColors.textEspresso,
                           ),
                         ),
                         backgroundColor: isSelected
-                            ? AppColors.butterCream
-                            : AppColors.surfaceWarm,
+                            ? context.bakeryColors.primaryCaramel.withValues(alpha: 0.25)
+                            : context.bakeryColors.surfaceCard,
+                        side: BorderSide(
+                          color: isSelected
+                              ? context.bakeryColors.primaryCaramel
+                              : context.bakeryColors.borderWarm,
+                        ),
                         onPressed: () {
                           setState(() {
                             if (!_moldTypes.contains(preset.moldTypeLabel)) {
@@ -2250,9 +2264,9 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                     }).toList(),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
+                  Text(
                     'Moldes estándar de torta y plancha:',
-                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    style: TextStyle(fontSize: 12, color: context.bakeryColors.textMuted),
                   ),
                   const SizedBox(height: 6),
                   Wrap(
@@ -2274,11 +2288,19 @@ class _RecipeFormScreenState extends State<RecipeFormScreen>
                             fontWeight: isSelected
                                 ? FontWeight.bold
                                 : FontWeight.normal,
+                            color: isSelected
+                                ? context.bakeryColors.primaryDarkCaramel
+                                : context.bakeryColors.textEspresso,
                           ),
                         ),
                         backgroundColor: isSelected
-                            ? AppColors.butterCream
-                            : AppColors.surfaceWarm,
+                            ? context.bakeryColors.primaryCaramel.withValues(alpha: 0.25)
+                            : context.bakeryColors.surfaceCard,
+                        side: BorderSide(
+                          color: isSelected
+                              ? context.bakeryColors.primaryCaramel
+                              : context.bakeryColors.borderWarm,
+                        ),
                         onPressed: () {
                           setState(() {
                             if (!_moldTypes.contains(preset.moldTypeLabel)) {

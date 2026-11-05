@@ -519,9 +519,9 @@ class _RecipeScalingScreenState extends State<RecipeScalingScreen> {
       ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(
-          color: AppColors.butterCream,
-          border: Border(top: BorderSide(color: AppColors.borderSubtle)),
+        decoration: BoxDecoration(
+          color: context.bakeryColors.surfaceCard,
+          border: Border(top: BorderSide(color: context.bakeryColors.borderSubtle)),
         ),
         child: SafeArea(
           child: Row(

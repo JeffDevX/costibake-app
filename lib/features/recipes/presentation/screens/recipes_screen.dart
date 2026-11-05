@@ -356,15 +356,15 @@ class _RecipesScreenState extends State<RecipesScreen> {
         children: [
           FloatingActionButton.extended(
             key: const Key('btn_scan_recipe_ai_fab'),
-            heroTag: 'fab_scan_ai',
+            heroTag: null,
             onPressed: () => _openAiScanModal(context),
-            backgroundColor: AppColors.butterCream,
-            icon: const Icon(Icons.auto_awesome,
-                color: AppColors.primaryCaramel),
-            label: const Text(
+            backgroundColor: context.bakeryColors.surfaceCard,
+            icon: Icon(Icons.auto_awesome,
+                color: context.bakeryColors.primaryCaramel),
+            label: Text(
               'Escanear con IA',
               style: TextStyle(
-                color: AppColors.primaryDarkCaramel,
+                color: context.bakeryColors.primaryDarkCaramel,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -372,14 +372,14 @@ class _RecipesScreenState extends State<RecipesScreen> {
           const SizedBox(height: 10),
           FloatingActionButton.extended(
             key: const Key('btn_add_recipe'),
-            heroTag: 'fab_add_recipe',
+            heroTag: null,
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const RecipeFormScreen()),
               );
             },
-            backgroundColor: AppColors.primaryCaramel,
+            backgroundColor: context.bakeryColors.primaryCaramel,
             icon: const Icon(Icons.add, color: Colors.white),
             label: const Text(
               'Nueva Receta',
@@ -414,12 +414,28 @@ class _RecipesScreenState extends State<RecipesScreen> {
                       children: [
                         TextField(
                           controller: _searchController,
+                          style: TextStyle(
+                            color: context.bakeryColors.textEspresso,
+                            fontSize: 14,
+                          ),
                           decoration: InputDecoration(
                             hintText: 'Buscar recetas...',
-                            prefixIcon: const Icon(Icons.search),
+                            hintStyle: TextStyle(
+                              color: context.isCacaoMode
+                                  ? const Color(0xFFD4C3B3)
+                                  : context.bakeryColors.textMuted,
+                              fontSize: 14,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color: context.bakeryColors.primaryCaramel,
+                            ),
                             suffixIcon: _searchController.text.isNotEmpty
                                 ? IconButton(
-                                    icon: const Icon(Icons.clear),
+                                    icon: Icon(
+                                      Icons.clear,
+                                      color: context.bakeryColors.textMuted,
+                                    ),
                                     onPressed: () {
                                       _searchController.clear();
                                       _onSearchChanged('');
@@ -427,15 +443,27 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                   )
                                 : null,
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: context.bakeryColors.surfaceCard,
                             contentPadding: const EdgeInsets.symmetric(
                               vertical: 10,
                               horizontal: 16,
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: AppColors.borderSubtle),
+                              borderSide: BorderSide(
+                                  color: context.bakeryColors.borderWarm),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                  color: context.bakeryColors.borderWarm),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: context.bakeryColors.primaryCaramel,
+                                width: 1.5,
+                              ),
                             ),
                           ),
                           onChanged: _onSearchChanged,

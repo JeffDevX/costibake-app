@@ -808,15 +808,44 @@ class _MissingIngredientsWizardDialogState
         // Live search bar
         TextField(
           controller: _searchController,
+          style: TextStyle(
+            color: context.bakeryColors.textEspresso,
+            fontSize: 14,
+          ),
           onChanged: _onSearchCatalog,
           decoration: InputDecoration(
             hintText: 'Buscar en catálogo (${_catalog.length} disponibles)...',
-            prefixIcon: const Icon(Icons.search_rounded),
-            border: const OutlineInputBorder(),
+            hintStyle: TextStyle(
+              color: context.isCacaoMode
+                  ? const Color(0xFFD4C3B3)
+                  : context.bakeryColors.textMuted,
+              fontSize: 14,
+            ),
+            prefixIcon: Icon(
+              Icons.search_rounded,
+              color: context.bakeryColors.primaryCaramel,
+            ),
+            filled: true,
+            fillColor: context.bakeryColors.surfaceCard,
+            border: OutlineInputBorder(
+              borderSide: BorderSide(color: context.bakeryColors.borderWarm),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: context.bakeryColors.borderWarm),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: context.bakeryColors.primaryCaramel,
+                width: 1.5,
+              ),
+            ),
             isDense: true,
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
-                    icon: const Icon(Icons.clear_rounded),
+                    icon: Icon(
+                      Icons.clear_rounded,
+                      color: context.bakeryColors.textMuted,
+                    ),
                     onPressed: () {
                       _searchController.clear();
                       _onSearchCatalog('');

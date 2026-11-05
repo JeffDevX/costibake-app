@@ -15,6 +15,7 @@ import 'package:costibake_app/features/settings/domain/entities/business_config.
 import 'package:costibake_app/core/utils/precise_decimal.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:costibake_app/core/theme/app_theme.dart';
 import 'package:costibake_app/features/catalog/domain/entities/ingredient.dart';
 import 'package:costibake_app/features/catalog/domain/entities/packaging.dart';
 import 'package:costibake_app/features/recipes/domain/entities/recipe.dart';
@@ -67,7 +68,7 @@ class _FakeQuoteRepo implements QuoteRepository {
 }
 
 void main() {
-  Widget buildApp() {
+  Widget buildApp({ThemeMode themeMode = ThemeMode.light}) {
     return MultiBlocProvider(
       providers: [
         BlocProvider<SettingsBloc>(
@@ -92,6 +93,9 @@ void main() {
         ),
       ],
       child: MaterialApp(
+        theme: AppTheme.vainillaTheme,
+        darkTheme: AppTheme.cacaoTheme,
+        themeMode: themeMode,
         builder: (context, child) {
           return GestureDetector(
             behavior: HitTestBehavior.translucent,
@@ -307,6 +311,69 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Opening forms from tabs does not throw multiple heroes error', (tester) async {
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      // Tap FAB on catalog screen to open ingredient form
+      final addBtn = find.byType(FloatingActionButton);
+      expect(addBtn, findsWidgets);
+      await tester.tap(addBtn.first);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.widgetWithText(AppBar, 'Registrar Insumo a Granel'), findsOneWidget);
+
+      // Pop back
+      final backBtn = find.byType(BackButton);
+      if (backBtn.evaluate().isNotEmpty) {
+        await tester.tap(backBtn.first);
+        await tester.pumpAndSettle();
+      }
+
+      // Switch to Recipes tab
+      await tester.tap(find.byIcon(Icons.menu_book_outlined));
+      await tester.pumpAndSettle();
+
+      // Tap Add Recipe button
+      final addRecipeFab = find.byKey(const Key('btn_add_recipe'));
+      expect(addRecipeFab, findsOneWidget);
+      await tester.tap(addRecipeFab);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Formular Nueva Receta'), findsOneWidget);
+    });
+
+    testWidgets('Search bars and RecipeFormScreen bottom bar respect Modo Cacao theme', (tester) async {
+      await tester.pumpWidget(buildApp(themeMode: ThemeMode.dark));
+      await tester.pumpAndSettle();
+
+      // Check search TextField hint style in Catalog tab in dark mode
+      final textFieldFinder = find.byType(TextField).first;
+      final textField = tester.widget<TextField>(textFieldFinder);
+      expect(textField.decoration?.hintStyle?.color, equals(const Color(0xFFD4C3B3)));
+      expect(textField.decoration?.fillColor, equals(const Color(0xFF241E1C)));
+
+      // Navigate to Recipes tab
+      await tester.tap(find.byIcon(Icons.menu_book_outlined));
+      await tester.pumpAndSettle();
+
+      // Tap Add Recipe button
+      final addRecipeFab = find.byKey(const Key('btn_add_recipe'));
+      await tester.tap(addRecipeFab);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Formular Nueva Receta'), findsOneWidget);
+
+      // Verify bottom bar Container has cacao surfaceCard color
+      final bottomBarFinder = find.byKey(const Key('recipe_form_bottom_bar'));
+      expect(bottomBarFinder, findsOneWidget);
+      final bottomBarContainer = tester.widget<Container>(bottomBarFinder);
+      final decoration = bottomBarContainer.decoration as BoxDecoration?;
+      expect(decoration?.color, equals(const Color(0xFF241E1C)));
     });
   });
 }

@@ -163,6 +163,7 @@ class _QuotesScreenState extends State<QuotesScreen> {
         elevation: 0,
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         key: const Key('btn_add_quote'),
         onPressed: () => _openNewQuote(context),
         backgroundColor: colors.primaryCaramel,
@@ -185,7 +186,11 @@ class _QuotesScreenState extends State<QuotesScreen> {
                   style: TextStyle(color: colors.textEspresso),
                   decoration: InputDecoration(
                     hintText: 'Buscar por cliente, notas o pastel...',
-                    hintStyle: TextStyle(color: colors.textMuted),
+                    hintStyle: TextStyle(
+                      color: context.isCacaoMode
+                          ? const Color(0xFFD4C3B3)
+                          : colors.textMuted,
+                    ),
                     prefixIcon: Icon(Icons.search, color: colors.primaryCaramel),
                     suffixIcon: _searchCtrl.text.isNotEmpty
                         ? IconButton(
